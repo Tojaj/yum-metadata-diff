@@ -1,0 +1,19 @@
+Repodiff
+========
+Repodiff is python library and utility to check sanity of repository 
+metadata and comparation of two repositories.
+
+Example usage:
+==============
+
+Sanity check
+------------
+python repo_diff.py --verbose test_repos/different_xml_and_sql/
+python repo_diff.py test_repos/sane_repo
+etc...
+
+Comparation
+-----------
+python repo_diff.py --compare test_repos/sane_repo test_repos/sane_repo_2/
+etc...
+

@@ -1,0 +1,37 @@
+from repodiff.diff_objects import MetadataDiff
+
+
+class Metadata(object):
+    def __init__(self):
+        self.packages = {}  # key is checksum
+        self.name_to_chksum = {}
+        self.chksum_to_name = {}
+
+    def append(self, ppackage):
+        self.packages[ppackage.checksum] = ppackage
+        if ppackage.name:
+            self.name_to_chksum[ppackage.name] = ppackage.checksum
+            self.chksum_to_name[ppackage.checksum] = ppackage.name
+
+    def diff(self, other):
+        pmd = MetadataDiff()
+        a = set(self.packages.keys())
+        b = set(other.packages.keys())
+        # Check package lists
+        if a != b:
+            pmd.missing_packages = a - b
+            pmd.added_packages   = b - a
+        # Check attributes of packages
+        for pkg in a.intersection(b):
+            pkg_a = self.packages[pkg]
+            pkg_b = other.packages[pkg]
+            pkg_diff = pkg_a.diff(pkg_b)
+            if pkg_diff:
+                pmd.changed_packages.add(pkg)
+                pmd.packages_diffs[pkg] = pkg_diff
+        if pmd:
+            return pmd
+        return None
+
+    def get_package_checksums(self):
+        return set(self.packages.keys())
