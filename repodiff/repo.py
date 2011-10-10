@@ -80,13 +80,16 @@ class CompleteRepo(object):
         self.xml_rep = xml_repo
         self.sql_rep = sqlite_repo
 
+    def vprint(self, text, verbose=True):
+        if verbose:
+            print text
+
     def check_sanity(self, verbose=False):
         # Check XML metadata sanity
         is_ok = True
-        print "> Checking XML metadata sanity..."
+        self.vprint("> Checking XML metadata sanity...", verbose)
         if not self.xml_rep.check_sanity(verbose):
-            if verbose:
-                print "XML metadata sanity check FAILED"
+            self.vprint("XML metadata sanity check FAILED", verbose)
             is_ok = False
 
         if not self.sql_rep:
@@ -94,59 +97,58 @@ class CompleteRepo(object):
             return True
 
         # Check Sqlite metadata sanity
-        print "> Checking Sqlite metadata sanity..."
+        self.vprint("> Checking Sqlite metadata sanity...", verbose)
         if not self.sql_rep.check_sanity(verbose):
-            if verbose:
-                print "Sqlite repo sanity check FAILED"
+            self.vprint("Sqlite repo sanity check FAILED", verbose)
             is_ok = False
 
         # Check that both metadata (xml and sqlite) have same packages (by names)
-        print "> Checking that packages in both metadatas are same (by name)..."
+        self.vprint("> Checking that packages in both metadatas are same (by name)...", verbose)
         xml_pkg_set = self.xml_rep.packages()
         sql_pkg_set = self.sql_rep.packages()
         if xml_pkg_set != sql_pkg_set:
             if verbose:
-                print "Sets of packages in xml and sqlite are DIFFERENT"
-                print "  Packages in xml but not in sqlite:"
+                self.vprint("Sets of packages in xml and sqlite are DIFFERENT", verbose)
+                self.vprint("  Packages in xml but not in sqlite:", verbose)
                 for chksum in (sql_pkg_set - xml_pkg_set):
-                    print "    %s" % self.xml_rep.checksum_to_name(chksum)
-                print "  Packages in sqlite but not in xml:"
+                    self.vprint("    %s" % self.xml_rep.checksum_to_name(chksum), verbose)
+                self.vprint("  Packages in sqlite but not in xml:", verbose)
                 for chksum in (sql_pkg_set - xml_pkg_set):
-                    print "    %s" % self.xml_rep.checksum_to_name(chksum)
+                    self.vprint("    %s" % self.xml_rep.checksum_to_name(chksum), verbose)
             return False
 
         # Check that both metadata (xml and sqlite) have same packages (by checksums)
-        print "> Checking that packages in both metadatas are same (by checksum)..."
+        self.vprint("> Checking that packages in both metadatas are same (by checksum)...", verbose)
         xml_chksum_set = self.xml_rep.checksums()
         sql_chksum_set = self.sql_rep.checksums()
         if xml_chksum_set != sql_chksum_set:
             if verbose:
-                print "Sets of packages in xml and sqlite are same, " \
-                      "but at least one checksum is DIFFERENT."
-                print "Package(s) with different checksum(s):"
+                self.vprint("Sets of packages in xml and sqlite are same, " \
+                      "but at least one checksum is DIFFERENT.", verbose)
+                self.vprint("Package(s) with different checksum(s):", verbose)
                 for chksum in xml_chksum_set - sql_chksum_set:
-                    print "  %s" % self.xml_rep.checksum_to_name(chksum)
+                    self.vprint("  %s" % self.xml_rep.checksum_to_name(chksum), verbose)
             return False
 
         # Compare individual repodata
-        print "> Checking individual metadata..."
+        self.vprint("> Checking individual metadata...", verbose)
         diff = self.xml_rep.pri.diff(self.sql_rep.pri)
         if diff:
             if verbose:
-                print "XML and Sqlite primary repodata are different:"
-                print diff.pprint()
+                self.vprint("XML and Sqlite primary repodata are different:", verbose)
+                self.vprint(diff.pprint(), verbose)
             is_ok = False
         diff = self.xml_rep.fil.diff(self.sql_rep.fil)
         if diff:
             if verbose:
-                print "XML and Sqlite filelists repodata are different:"
-                print diff.pprint()
+                self.vprint("XML and Sqlite filelists repodata are different:", verbose)
+                self.vprint(diff.pprint(), verbose)
             is_ok = False
         diff = self.xml_rep.oth.diff(self.sql_rep.oth)
         if diff:
             if verbose:
-                print "XML and Sqlite other repodata are different:"
-                print diff.pprint()
+                self.vprint("XML and Sqlite other repodata are different:", verbose)
+                self.vprint(diff.pprint(), verbose)
             is_ok = False
 
         return is_ok
