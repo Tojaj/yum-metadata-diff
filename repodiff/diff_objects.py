@@ -76,3 +76,52 @@ class MetadataDiff(object):
                 msg += self.packages_diffs[pkg].pprint()
                 msg += "    ----------------------------------------\n"
         return msg
+
+
+class OneRepoDiff(object):
+    def __init__(self, chksum_to_name_dicts=None):
+        self.chksum_to_name_dicts = chksum_to_name_dicts
+        self.pri_diff = None
+        self.fil_diff = None
+        self.oth_diff = None
+
+    def __nonzero__(self):
+        return bool(self.pri_diff or self.fil_diff or self.oth_diff)
+
+    def __repr__(self):
+        return libpprint.pformat(self.__dict__)
+
+    def pprint(self):
+        msg = ""
+        if self.pri_diff:
+            msg += "PRIMARY repodata are different:\n"
+            msg += self.pri_diff.pprint(chksum_to_name_dicts=self.chksum_to_name_dicts)
+        if self.fil_diff:
+            msg += "PRIMARY repodata are different:\n"
+            msg += self.fil_diff.pprint(chksum_to_name_dicts=self.chksum_to_name_dicts)
+        if self.oth_diff:
+            msg += "PRIMARY repodata are different:\n"
+            msg += self.oth_diff.pprint(chksum_to_name_dicts=self.chksum_to_name_dicts)
+        return msg
+
+
+class CompleteRepoDiff(object):
+    def __init__(self):
+        self.xml_repo_diff = None
+        self.sql_repo_diff = None
+
+    def __nonzero__(self):
+        return bool(self.xml_repo_diff or self.sql_repo_diff)
+
+    def __repr__(self):
+        return libpprint.pformat(self.__dict__)
+
+    def pprint(self):
+        msg = ""
+        if self.xml_repo_diff:
+            msg += "=== XML REPO DIFF: ===\n"
+            msg += self.xml_repo_diff.pprint()
+        if self.sql_repo_diff:
+            msg += "=== SQLITE REPO DIFF: ===\n"
+            msg += self.sql_repo_diff.pprint()
+        return msg

@@ -1,3 +1,4 @@
+from diff_objects import OneRepoDiff, CompleteRepoDiff
 from pprint import pformat
 
 class OneRepo(object):
@@ -60,20 +61,17 @@ class OneRepo(object):
         chksum_to_name_dicts = (self.pri.chksum_to_name,
                                 other.pri.chksum_to_name)
 
+        onerepo_diff = OneRepoDiff(chksum_to_name_dicts=chksum_to_name_dicts)
         diff = self.pri.diff(other.pri)
         if diff:
-            print "PRIMARY repodata are different:"
-            print diff.pprint(chksum_to_name_dicts=chksum_to_name_dicts)
-
+            onerepo_diff.pri_diff = diff
         diff = self.fil.diff(other.fil)
         if diff:
-            print "FILELISTS repodata are different:"
-            print diff.pprint(chksum_to_name_dicts=chksum_to_name_dicts)
-
+            onerepo_diff.fil_diff = diff
         diff = self.oth.diff(other.oth)
         if diff:
-            print "OTHER repodata are different:"
-            print diff.pprint(chksum_to_name_dicts=chksum_to_name_dicts)
+            onerepo_diff.oth_diff = diff
+        return onerepo_diff
 
 
 class CompleteRepo(object):
@@ -154,8 +152,12 @@ class CompleteRepo(object):
         return is_ok
 
     def diff(self, other):
-        print "=== XML REPO DIFF: ==="
-        self.xml_rep.diff(other.xml_rep)
+        completerepo_diff = CompleteRepoDiff()
+        diff = self.xml_rep.diff(other.xml_rep)
+        if diff:
+            completerepo_diff.xml_repo_diff = diff
         if self.sql_rep:
-            print "=== SQLITE REPO DIFF: ==="
-            self.sql_rep.diff(other.sql_rep)
+            diff  = self.sql_rep.diff(other.sql_rep)
+            if diff:
+                completerepo_diff.sql_repo_diff = diff
+        return completerepo_diff

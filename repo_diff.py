@@ -34,8 +34,9 @@ if __name__ == "__main__":
         repodir2 = args[1]
         cr1 = completerepo_factory(repodir)
         cr2 = completerepo_factory(repodir2)
-        ret = cr1.diff(cr2)
-        if not ret:
+        diff = cr1.diff(cr2)
+        if diff:
+            print diff.pprint()
             print "Repos are not same"
             sys.exit(2)
         sys.exit(0)
@@ -44,6 +45,6 @@ if __name__ == "__main__":
     cr1 = completerepo_factory(repodir)
     ret = cr1.check_sanity(verbose=verbose)
     if not ret:
-        print "Repodata are not sane"
+        print "Repodata is not sane"
         sys.exit(2)
     sys.exit(0)
