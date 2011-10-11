@@ -32,10 +32,11 @@ class PrimaryPackage(Package):
         self.location = ""
         self.location_base = ""
         self.checksum_type = ""
-        self.provides  = {}  # {'filename': (flags, epoch, version, release), ...}
-        self.conflicts = {}  # -||-
-        self.obsoletes = {}  # -||-
-        self.requires  = {}  # {'filename': (flags, epoch, version, release, pre), ...}
+        self.provides  = set([])  # set([('filename', flags, epoch, version, release), ...])
+        self.conflicts = set([])  # -||-
+        self.obsoletes = set([])  # -||-
+        self.requires  = set([]) # set([(filename, flags, epoch, version, release, pre), ...])
+        # ^^^ It's because there can be multiple files with same name, but different attributes
         self.files  = set()  # primary_files
         self.dirs   = set()  # primary_dirs
         self.ghosts = set()  # primary_ghosts

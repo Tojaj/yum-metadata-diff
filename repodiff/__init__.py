@@ -29,14 +29,19 @@ OTH_NS = "{http://linux.duke.edu/metadata/other}"
 #
 
 def _parse_pco(elem, requires=False):
-    pco_dict = {}
+    req_set = set([])
     for felem in elem:
         if felem.tag.endswith("entry"):
-            pco_dict[felem.get("name")] = (felem.get("flags"),
-                felem.get("epoch"), felem.get("ver"), felem.get("rel"))
+            res = (felem.get("name"),
+                   felem.get("flags"),
+                   felem.get("epoch"),
+                   felem.get("ver"),
+                   felem.get("rel"))
             if requires:
-                pco_dict[felem.get("name")] += (bool(felem.get("pre")),)
-    return pco_dict
+                res += (bool(felem.get("pre")),)
+        req_set.add(res)
+    return req_set
+
 
 def primarymetadata_from_xml_factory(xmlpath):
     pri_obj = PrimaryMetadata()
@@ -179,22 +184,22 @@ def primarymetadata_from_sqlite_factory(sqlitepath):
         cur = con.cursor()
         # provides, obsoletes, conflicts
         for pco in ('obsoletes', 'provides', 'conflicts'):
-            pco_dict = {}
+            pco_set = set([])
             cur.execute('SELECT * FROM %s WHERE pkgKey=?' % pco, (uid,))
             for name, flag, epoch, ver, rel, _ in cur:
-                pco_dict[name] = (flag, epoch, ver, rel)
-            setattr(pp, pco, pco_dict)
+                pco_set.add((name, flag, epoch, ver, rel))
+            setattr(pp, pco, pco_set)
 
         # requires
-        req_dict = {}
+        req_set = set([])
         cur.execute('SELECT * FROM requires WHERE pkgKey=?', (uid,))
         for name, flag, epoch, ver, rel, _, pre in cur:
             if pre == 'TRUE':
-                pre = 1
+                pre = True
             else:
-                pre = 0
-            req_dict[name] = (flag, epoch, ver, rel, pre)
-        setattr(pp, 'requires', req_dict)
+                pre = False
+            req_set.add((name, flag, epoch, ver, rel, pre))
+        setattr(pp, 'requires', req_set)
 
         #files
         files  = set([])
