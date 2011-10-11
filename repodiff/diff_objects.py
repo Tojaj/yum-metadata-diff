@@ -97,10 +97,10 @@ class OneRepoDiff(object):
             msg += "PRIMARY repodata are different:\n"
             msg += self.pri_diff.pprint(chksum_to_name_dicts=self.chksum_to_name_dicts)
         if self.fil_diff:
-            msg += "PRIMARY repodata are different:\n"
+            msg += "FILELISTS repodata are different:\n"
             msg += self.fil_diff.pprint(chksum_to_name_dicts=self.chksum_to_name_dicts)
         if self.oth_diff:
-            msg += "PRIMARY repodata are different:\n"
+            msg += "OTHER repodata are different:\n"
             msg += self.oth_diff.pprint(chksum_to_name_dicts=self.chksum_to_name_dicts)
         return msg
 

@@ -211,11 +211,11 @@ def primarymetadata_from_sqlite_factory(sqlitepath):
                 files.add(filename)
             elif ftype == 'dir':
                 dirs.add(filename)
-            elif ftype == 'ghosts':
+            elif ftype == 'ghost':
                 ghosts.add(filename)
         pp.files   = files
         pp.dirs    = dirs
-        pp.ghostst = ghosts
+        pp.ghosts  = ghosts
 
         pri_obj.append(pp)
     return pri_obj
