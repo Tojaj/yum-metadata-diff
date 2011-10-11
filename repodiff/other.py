@@ -13,7 +13,7 @@ class OtherPackage(Package):
         self.version = ""   #---- This info is available only in XML
         self.epoch = ""     #--/
         self.release = ""   #-/
-        self.changelogs = set()  # set([(author, date, text), ...])
+        self.changelogs = []  # [(author, date, text), ...]
 
 
 class OtherMetadata(Metadata):

@@ -143,7 +143,7 @@ def othermetadata_from_xml_factory(xmlpath):
                 op.version = elem.get("ver")
                 op.release = elem.get("rel")
             elif elem.tag.endswith("changelog"):
-                op.changelogs.add((elem.get("author"), int(elem.get("date")), elem.text))
+                op.changelogs.append((elem.get("author"), int(elem.get("date")), elem.text))
         elements.clear()
         oth_obj.append(op)
     return oth_obj
@@ -258,11 +258,11 @@ def othermetadata_from_sqlite_factory(sqlitepath):
         op.checksum = row[1]
 
         cur = con.cursor()
-        cur.execute('SELECT author, date, changelog FROM changelog WHERE pkgKey=?',
+        cur.execute('SELECT author, date, changelog FROM changelog WHERE pkgKey=? ORDER BY date ASC',
                                                                     (pkgkey,))
 
         for author, date, changelog in cur:
-            op.changelogs.add((author, date, changelog))
+            op.changelogs.append((author, date, changelog))
 
         oth_obj.append(op)
     return oth_obj
