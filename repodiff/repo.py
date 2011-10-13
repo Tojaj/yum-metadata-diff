@@ -158,8 +158,13 @@ class CompleteRepo(object):
         diff = self.xml_rep.diff(other.xml_rep)
         if diff:
             completerepo_diff.xml_repo_diff = diff
-        if self.sql_rep:
+        if self.sql_rep and other.sql_rep:
             diff  = self.sql_rep.diff(other.sql_rep)
             if diff:
                 completerepo_diff.sql_repo_diff = diff
+        else:
+            if not self.sql_rep:
+                print "Warning: First repo has not Sqlite database!"
+            else:
+                print "Warning: Second repo has not Sqlite database!"
         return completerepo_diff
