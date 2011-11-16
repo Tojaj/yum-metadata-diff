@@ -3,6 +3,7 @@ from repodiff.diff_objects import PackageDiff
 
 class Package(object):
 
+    DIFF_CLASS = PackageDiff
     DIFF_ATTR = ('checksum')
 
     def __init__(self):
@@ -10,7 +11,7 @@ class Package(object):
         self.name = ''
 
     def diff(self, other):
-        ppd = PackageDiff()
+        ppd = self.DIFF_CLASS()
         for key in self.DIFF_ATTR:
             a = getattr(self, key)
             b = getattr(other, key)
@@ -27,5 +28,3 @@ class Package(object):
     def pprint(self):
         msg  = "%s (%s)\n" % (self.name, self.checksum)
         print msg
-
-

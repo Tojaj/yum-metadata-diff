@@ -1,6 +1,8 @@
 import pprint as libpprint
 
 class PackageDiff(object):
+    ITEM_NAME = "Package"
+
     def __init__(self):
         self.changed_attributes = set()  # Set of changed attributes
         self.attr_values = {}
@@ -27,11 +29,15 @@ class PackageDiff(object):
                 msg += " (Attribute is set -> Show only difference)\n"
             else:
                 msg += "\n"
-            msg += "      1. Package:\n"
+            msg += "      1. %s:\n" % self.ITEM_NAME
             msg += "        %s\n" % libpprint.pformat(a, indent=2)
-            msg += "      2. Package:\n"
+            msg += "      2. %s:\n" % self.ITEM_NAME
             msg += "        %s\n" % libpprint.pformat(b, indent=2)
         return msg
+
+
+class RepomdDataDiff(PackageDiff):
+    ITEM_NAME = "Value"
 
 
 class MetadataDiff(object):
@@ -109,9 +115,10 @@ class CompleteRepoDiff(object):
     def __init__(self):
         self.xml_repo_diff = None
         self.sql_repo_diff = None
+        self.md_diff       = None
 
     def __nonzero__(self):
-        return bool(self.xml_repo_diff or self.sql_repo_diff)
+        return bool(self.xml_repo_diff or self.sql_repo_diff or self.md_diff)
 
     def __repr__(self):
         return libpprint.pformat(self.__dict__)
@@ -124,4 +131,7 @@ class CompleteRepoDiff(object):
         if self.sql_repo_diff:
             msg += "=== SQLITE REPO DIFF: ===\n"
             msg += self.sql_repo_diff.pprint()
+        if self.md_diff:
+            msg += "=== REPOMD.XML DIFF: ===\n"
+            msg += self.md_diff.pprint()
         return msg

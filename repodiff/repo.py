@@ -1,14 +1,22 @@
+import shutil
+import os
 from diff_objects import OneRepoDiff, CompleteRepoDiff
 from pprint import pformat
+from kobo.shortcuts import compute_file_checksums
 
 class OneRepo(object):
     """Class represent metadata set (primary + filelistst + other)
     for one metadata type (xml or sqlite)"""
 
-    def __init__(self, primary, filelists, other):
+    def __init__(self, primary, filelists, other, tmpdir=None):
         self.pri = primary
         self.fil = filelists
         self.oth = other
+        self.tmpdir = tmpdir # Directory with uncompressed files
+
+    def __del__(self):
+        if self.tmpdir:
+            shutil.rmtree(self.tmpdir)
 
     def checksum_to_name(self, chksum):
         """Translate checksum to name."""
@@ -76,9 +84,10 @@ class OneRepo(object):
 
 class CompleteRepo(object):
 
-    def __init__(self, xml_repo, sqlite_repo=None):
+    def __init__(self, xml_repo, sqlite_repo=None, md=None):
         self.xml_rep = xml_repo
         self.sql_rep = sqlite_repo
+        self.md = md
 
     def vprint(self, text, verbose=True):
         if verbose:
@@ -107,14 +116,13 @@ class CompleteRepo(object):
         xml_pkg_set = self.xml_rep.packages()
         sql_pkg_set = self.sql_rep.packages()
         if xml_pkg_set != sql_pkg_set:
-            if verbose:
-                self.vprint("Sets of packages in xml and sqlite are DIFFERENT", verbose)
-                self.vprint("  Packages in xml but not in sqlite:", verbose)
-                for chksum in (sql_pkg_set - xml_pkg_set):
-                    self.vprint("    %s" % self.xml_rep.checksum_to_name(chksum), verbose)
-                self.vprint("  Packages in sqlite but not in xml:", verbose)
-                for chksum in (sql_pkg_set - xml_pkg_set):
-                    self.vprint("    %s" % self.xml_rep.checksum_to_name(chksum), verbose)
+            self.vprint("Sets of packages in xml and sqlite are DIFFERENT", verbose)
+            self.vprint("  Packages in xml but not in sqlite:", verbose)
+            for chksum in (sql_pkg_set - xml_pkg_set):
+                self.vprint("    %s" % self.xml_rep.checksum_to_name(chksum), verbose)
+            self.vprint("  Packages in sqlite but not in xml:", verbose)
+            for chksum in (sql_pkg_set - xml_pkg_set):
+                self.vprint("    %s" % self.xml_rep.checksum_to_name(chksum), verbose)
             return False
 
         # Check that both metadata (xml and sqlite) have same packages (by checksums)
@@ -122,35 +130,83 @@ class CompleteRepo(object):
         xml_chksum_set = self.xml_rep.checksums()
         sql_chksum_set = self.sql_rep.checksums()
         if xml_chksum_set != sql_chksum_set:
-            if verbose:
-                self.vprint("Sets of packages in xml and sqlite are same, " \
-                      "but at least one checksum is DIFFERENT.", verbose)
-                self.vprint("Package(s) with different checksum(s):", verbose)
-                for chksum in xml_chksum_set - sql_chksum_set:
-                    self.vprint("  %s" % self.xml_rep.checksum_to_name(chksum), verbose)
+            self.vprint("Sets of packages in xml and sqlite are same, " \
+                  "but at least one checksum is DIFFERENT.", verbose)
+            self.vprint("Package(s) with different checksum(s):", verbose)
+            for chksum in xml_chksum_set - sql_chksum_set:
+                self.vprint("  %s" % self.xml_rep.checksum_to_name(chksum), verbose)
             return False
 
         # Compare individual repodata
         self.vprint("> Checking individual metadata...", verbose)
         diff = self.xml_rep.pri.diff(self.sql_rep.pri)
         if diff:
-            if verbose:
-                self.vprint("XML and Sqlite primary repodata are different:", verbose)
-                self.vprint(diff.pprint(), verbose)
+            self.vprint("XML and Sqlite primary repodata are different:", verbose)
+            self.vprint(diff.pprint(), verbose)
             is_ok = False
         diff = self.xml_rep.fil.diff(self.sql_rep.fil)
         if diff:
-            if verbose:
-                self.vprint("XML and Sqlite filelists repodata are different:", verbose)
-                self.vprint(diff.pprint(), verbose)
+            self.vprint("XML and Sqlite filelists repodata are different:", verbose)
+            self.vprint(diff.pprint(), verbose)
             is_ok = False
         diff = self.xml_rep.oth.diff(self.sql_rep.oth)
         if diff:
-            if verbose:
-                self.vprint("XML and Sqlite other repodata are different:", verbose)
-                self.vprint(diff.pprint(), verbose)
+            self.vprint("XML and Sqlite other repodata are different:", verbose)
+            self.vprint(diff.pprint(), verbose)
             is_ok = False
 
+        self.vprint("> Checking files by repomd.xml...", verbose)
+        is_ok &= self.check_sanity_by_repomd(verbose)
+        return is_ok
+
+    def _check_one_archive(self, obj, path, archpath, verbose=False):
+        is_ok = True
+
+        # Calculate checksums
+        arch_chksum = compute_file_checksums(archpath, obj.checksum_type)[obj.checksum_type]
+        chksum = compute_file_checksums(path, obj.open_checksum_type)[obj.open_checksum_type]
+        if arch_chksum != obj.real_checksum:
+            self.vprint("repomd.xml: Archive checksum doesn't match: %s" % archpath, verbose)
+            is_ok = False
+        if chksum != obj.open_checksum:
+            self.vprint("repomd.xml: Open checksum doesn't match: %s" % path, verbose)
+            is_ok = False
+
+        # Check stat
+        archpath_st = os.stat(archpath)
+        path_st = os.stat(path)
+
+        if archpath_st.st_size != int(obj.size):
+            self.vprint("repomd.xml: Archive size doesn't match: %s" % archpath, verbose)
+        if path_st.st_size != int(obj.open_size):
+            self.vprint("repomd.xml: Open size doesn't match: %s" % archpath, verbose)
+
+        # Conversion to int => Ignore numbers after decimal point
+        if int(archpath_st.st_mtime) != int(float(obj.timestamp)):
+            self.vprint("repomd.xml: Mtime doesn't match: %s" % archpath, verbose)
+
+        return is_ok
+
+    def check_sanity_by_repomd(self, verbose=False):
+        is_ok = True
+        if not self.md:
+            return is_ok
+        for data in self.md:
+            if data.name.endswith("_db") and not self.sql_rep:
+                continue
+            if data.name == "other_db":
+                obj = self.sql_rep.oth
+            elif data.name == "other":
+                obj = self.xml_rep.oth
+            elif data.name == "filelists_db":
+                obj = self.sql_rep.fil
+            elif data.name == "filelists":
+                obj = self.xml_rep.fil
+            elif data.name == "primary_db":
+                obj = self.sql_rep.pri
+            elif data.name == "primary":
+                obj = self.xml_rep.pri
+            is_ok &= self._check_one_archive(data, obj.path, obj.archpath, verbose)
         return is_ok
 
     def diff(self, other):
@@ -167,4 +223,10 @@ class CompleteRepo(object):
                 print "Warning: First repo has not Sqlite database!"
             else:
                 print "Warning: Second repo has not Sqlite database!"
+
+        # repomd.xml files check
+        diff = self.md.diff(other.md)
+        if diff:
+            completerepo_diff.md_diff = diff
+
         return completerepo_diff

@@ -1,6 +1,7 @@
 from repodiff.primary import PrimaryMetadata, PrimaryPackage
 from repodiff.filelists import FilelistsMetadata, FilelistsPackage
 from repodiff.other import OtherMetadata, OtherPackage
+from repodiff.repomd import RepomdMetadata, RepomdData
 from repodiff.repo import OneRepo, CompleteRepo
 from lxml import etree
 import gzip
@@ -23,6 +24,7 @@ class Repo(object):
 PRI_NS = "{http://linux.duke.edu/metadata/common}"
 FIL_NS = "{http://linux.duke.edu/metadata/filelists}"
 OTH_NS = "{http://linux.duke.edu/metadata/other}"
+MD_NS = "{http://linux.duke.edu/metadata/repo}"
 
 #
 # XML
@@ -43,8 +45,8 @@ def _parse_pco(elem, requires=False):
     return req_set
 
 
-def primarymetadata_from_xml_factory(xmlpath):
-    pri_obj = PrimaryMetadata()
+def primarymetadata_from_xml_factory(xmlpath, archpath):
+    pri_obj = PrimaryMetadata(xmlpath, archpath)
     for _, elements in etree.iterparse(open(xmlpath), tag="%spackage" % PRI_NS):
         pp = PrimaryPackage()
         for elem in elements:
@@ -111,8 +113,8 @@ def primarymetadata_from_xml_factory(xmlpath):
     return pri_obj
 
 
-def filelistsmetadata_from_xml_factory(xmlpath):
-    fil_obj = FilelistsMetadata()
+def filelistsmetadata_from_xml_factory(xmlpath, archpath):
+    fil_obj = FilelistsMetadata(xmlpath, archpath)
     for _, elements in etree.iterparse(open(xmlpath), tag="%spackage" % FIL_NS):
         fp = FilelistsPackage()
         fp.checksum = elements.get("pkgid")
@@ -135,8 +137,8 @@ def filelistsmetadata_from_xml_factory(xmlpath):
     return fil_obj
 
 
-def othermetadata_from_xml_factory(xmlpath):
-    oth_obj = OtherMetadata()
+def othermetadata_from_xml_factory(xmlpath, archpath):
+    oth_obj = OtherMetadata(xmlpath, archpath)
     for _, elements in etree.iterparse(open(xmlpath), tag="%spackage" % OTH_NS):
         op = OtherPackage()
         op.checksum = elements.get("pkgid")
@@ -157,8 +159,8 @@ def othermetadata_from_xml_factory(xmlpath):
 # Sqlite
 #
 
-def primarymetadata_from_sqlite_factory(sqlitepath):
-    pri_obj = PrimaryMetadata()
+def primarymetadata_from_sqlite_factory(sqlitepath, archpath):
+    pri_obj = PrimaryMetadata(sqlitepath, archpath)
 
     con = sqlite.Connection(sqlitepath)
     pri_cur = con.cursor()
@@ -221,8 +223,8 @@ def primarymetadata_from_sqlite_factory(sqlitepath):
     return pri_obj
 
 
-def filelistsmetadata_from_sqlite_factory(sqlitepath):
-    fil_obj = FilelistsMetadata()
+def filelistsmetadata_from_sqlite_factory(sqlitepath, archpath):
+    fil_obj = FilelistsMetadata(sqlitepath, archpath)
 
     con = sqlite.Connection(sqlitepath)
     fil_cur = con.cursor()
@@ -250,8 +252,8 @@ def filelistsmetadata_from_sqlite_factory(sqlitepath):
     return fil_obj
 
 
-def othermetadata_from_sqlite_factory(sqlitepath):
-    oth_obj = OtherMetadata()
+def othermetadata_from_sqlite_factory(sqlitepath, archpath):
+    oth_obj = OtherMetadata(sqlitepath, archpath)
 
     con = sqlite.Connection(sqlitepath)
     oth_cur = con.cursor()
@@ -274,10 +276,45 @@ def othermetadata_from_sqlite_factory(sqlitepath):
 
 
 #
+# Repomd
+#
+
+def repomdmetadata_from_xml_factory(xmlpath):
+    rm_obj = RepomdMetadata(xmlpath)
+    for _, elements in etree.iterparse(open(xmlpath), tag="%sdata" % MD_NS):
+        re = RepomdData()
+        re.name = elements.get("type")
+        # Checksum of metadata could be different so use 
+        # type instead of real checksum
+        re.checksum = elements.get("type")
+        for elem in elements:
+            if elem.tag.endswith("location"):
+                re.location_href = elem.get("href")
+            elif elem.tag.endswith("open-size"):
+                re.open_size = elem.text
+            elif elem.tag.endswith("open-checksum"):
+                re.open_checksum_type = elem.get("type")
+                re.open_checksum = elem.text
+            elif elem.tag.endswith("checksum"):
+                re.checksum_type = elem.get("type")
+                re.real_checksum = elem.text
+            elif elem.tag.endswith("timestamp"):
+                re.timestamp = elem.text
+            elif elem.tag.endswith("size"):
+                re.size = elem.text
+
+            elif elem.tag.endswith("database_version"):
+                re.database_version = elem.text
+        elements.clear()
+        rm_obj.append(re)
+    return rm_obj
+
+
+#
 # One repo
 #
 
-def xml_onerepo_factory(repopath):
+def xml_onerepo_factory(repopath, remove_tmp=True):
     pri_path = os.path.join(repopath, "primary.xml.gz")
     fil_path = os.path.join(repopath, "filelists.xml.gz")
     oth_path = os.path.join(repopath, "other.xml.gz")
@@ -299,16 +336,18 @@ def xml_onerepo_factory(repopath):
     open(new_oth_path, 'wb').write(gzip.open(oth_path, 'rb').read())
 
     # Read decompressed repo data
-    pri = primarymetadata_from_xml_factory(new_pri_path)
-    fil = filelistsmetadata_from_xml_factory(new_fil_path)
-    oth = othermetadata_from_xml_factory(new_oth_path)
+    pri = primarymetadata_from_xml_factory(new_pri_path, pri_path)
+    fil = filelistsmetadata_from_xml_factory(new_fil_path, fil_path)
+    oth = othermetadata_from_xml_factory(new_oth_path, oth_path)
 
     # Clean up
-    shutil.rmtree(tmpdir)
-    return OneRepo(pri, fil, oth)
+    if remove_tmp:
+        shutil.rmtree(tmpdir)
+        tmpdir = None
+    return OneRepo(pri, fil, oth, tmpdir)
 
 
-def sqlite_onerepo_factory(repopath):
+def sqlite_onerepo_factory(repopath, remove_tmp=True):
     pri_path = os.path.join(repopath, "primary.sqlite.bz2")
     fil_path = os.path.join(repopath, "filelists.sqlite.bz2")
     oth_path = os.path.join(repopath, "other.sqlite.bz2")
@@ -330,13 +369,15 @@ def sqlite_onerepo_factory(repopath):
     open(new_oth_path, 'wb').write(bz2.BZ2File(oth_path, 'rb').read())
 
     # Read decompressed repo data
-    pri = primarymetadata_from_sqlite_factory(new_pri_path)
-    fil = filelistsmetadata_from_sqlite_factory(new_fil_path)
-    oth = othermetadata_from_sqlite_factory(new_oth_path)
+    pri = primarymetadata_from_sqlite_factory(new_pri_path, pri_path)
+    fil = filelistsmetadata_from_sqlite_factory(new_fil_path, fil_path)
+    oth = othermetadata_from_sqlite_factory(new_oth_path, oth_path)
 
     # Clean up
-    shutil.rmtree(tmpdir)
-    return OneRepo(pri, fil, oth)
+    if remove_tmp:
+        shutil.rmtree(tmpdir)
+        tmpdir = None
+    return OneRepo(pri, fil, oth, tmpdir)
 
 
 #
@@ -344,10 +385,10 @@ def sqlite_onerepo_factory(repopath):
 #
 
 def completerepo_factory(repopath, sqliteauto=True, sqlite=False):
-    xmlrepo = xml_onerepo_factory(repopath)
+    xmlrepo = xml_onerepo_factory(repopath, remove_tmp=False)
     sqlrepo = None
     if sqlite:
-        sqlrepo = sqlite_onerepo_factory(repopath)
+        sqlrepo = sqlite_onerepo_factory(repopath, remove_tmp=False)
     elif sqliteauto:
         pri_path = os.path.join(repopath, "primary.sqlite.bz2")
         fil_path = os.path.join(repopath, "filelists.sqlite.bz2")
@@ -355,5 +396,6 @@ def completerepo_factory(repopath, sqliteauto=True, sqlite=False):
         if os.path.exists(pri_path) and \
            os.path.exists(fil_path) and \
            os.path.exists(oth_path):
-            sqlrepo = sqlite_onerepo_factory(repopath)
-    return CompleteRepo(xmlrepo, sqlrepo)
+            sqlrepo = sqlite_onerepo_factory(repopath, remove_tmp=False)
+    md  = repomdmetadata_from_xml_factory(os.path.join(repopath, "repomd.xml"))
+    return CompleteRepo(xmlrepo, sqlrepo, md)

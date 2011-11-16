@@ -2,10 +2,15 @@ from repodiff.diff_objects import MetadataDiff
 
 
 class Metadata(object):
-    def __init__(self):
-        self.packages = {}  # key is checksum
+    def __init__(self, path=None, archpath=None):
+        self.path     = path      # Path to metadata file
+        self.archpath = archpath  # Path to original compressed metadata file
+        self.packages = {}        # key is checksum
         self.name_to_chksum = {}
         self.chksum_to_name = {}
+
+    def __iter__(self):
+        return self.packages.itervalues()
 
     def append(self, ppackage):
         self.packages[ppackage.checksum] = ppackage
