@@ -115,14 +115,15 @@ class CompleteRepo(object):
         self.vprint("> Checking that packages in both metadatas are same (by name)...", verbose)
         xml_pkg_set = self.xml_rep.packages()
         sql_pkg_set = self.sql_rep.packages()
+        print xml_pkg_set
         if xml_pkg_set != sql_pkg_set:
             self.vprint("Sets of packages in xml and sqlite are DIFFERENT", verbose)
             self.vprint("  Packages in xml but not in sqlite:", verbose)
-            for chksum in (sql_pkg_set - xml_pkg_set):
-                self.vprint("    %s" % self.xml_rep.checksum_to_name(chksum), verbose)
+            for chksum in (xml_pkg_set - sql_pkg_set):
+                self.vprint("    %s" % chksum, verbose)
             self.vprint("  Packages in sqlite but not in xml:", verbose)
             for chksum in (sql_pkg_set - xml_pkg_set):
-                self.vprint("    %s" % self.xml_rep.checksum_to_name(chksum), verbose)
+                self.vprint("    %s" % chksum, verbose)
             return False
 
         # Check that both metadata (xml and sqlite) have same packages (by checksums)
