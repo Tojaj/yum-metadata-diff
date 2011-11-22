@@ -423,7 +423,7 @@ def completerepo_factory(repopath, sqliteauto=True, sqlite=False):
         for fname in os.listdir(repopath):
             if fname.endswith("primary.sqlite.bz2") or fname.endswith("primary.sqlite.gz"):
                 pri = True
-            if fname.endswith("filename.sqlite.bz2") or fname.endswith("filename.sqlite.gz"):
+            if fname.endswith("filelists.sqlite.bz2") or fname.endswith("filelists.sqlite.gz"):
                 fil = True
             if fname.endswith("other.sqlite.bz2") or fname.endswith("other.sqlite.gz"):
                 oth = True
