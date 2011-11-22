@@ -4,6 +4,7 @@ from repodiff.other import OtherMetadata, OtherPackage
 from repodiff.repomd import RepomdMetadata, RepomdData
 from repodiff.repo import OneRepo, CompleteRepo
 from lxml import etree
+import os
 import gzip
 import bz2
 import tempfile
@@ -315,14 +316,21 @@ def repomdmetadata_from_xml_factory(xmlpath):
 #
 
 def xml_onerepo_factory(repopath, remove_tmp=True):
-    pri_path = os.path.join(repopath, "primary.xml.gz")
-    fil_path = os.path.join(repopath, "filelists.xml.gz")
-    oth_path = os.path.join(repopath, "other.xml.gz")
+    pri_path = None
+    fil_path = None
+    oth_path = None
+
+    for fname in os.listdir(repopath):
+        if "primary.xml." in fname:
+            pri_path = os.path.join(repopath, fname)
+        elif "filelists.xml." in fname:
+            fil_path = os.path.join(repopath, fname)
+        elif "other.xml." in fname:
+            oth_path = os.path.join(repopath, fname)
 
     # Check if all three repofiles (primary, filelists, other) exists
-    for filename in (pri_path, fil_path, oth_path):
-        if not os.path.exists(filename):
-            raise IOError("File '%s' doesn't exist" % filename)
+    if not pri_path or not fil_path or not oth_path:
+        raise IOError("Some xml file are missing")
 
     # Create tempdir
     tmpdir = tempfile.mkdtemp()
@@ -330,10 +338,16 @@ def xml_onerepo_factory(repopath, remove_tmp=True):
     new_fil_path = os.path.join(tmpdir, "filelists.xml")
     new_oth_path = os.path.join(tmpdir, "other.xml")
 
-    # Gzip decompression
-    open(new_pri_path, 'wb').write(gzip.open(pri_path, 'rb').read())
-    open(new_fil_path, 'wb').write(gzip.open(fil_path, 'rb').read())
-    open(new_oth_path, 'wb').write(gzip.open(oth_path, 'rb').read())
+    # Bzip2 uncompression
+    if pri_path.endswith(".bz2"):
+        open(new_pri_path, 'wb').write(bz2.BZ2File(pri_path, 'rb').read())
+        open(new_fil_path, 'wb').write(bz2.BZ2File(fil_path, 'rb').read())
+        open(new_oth_path, 'wb').write(bz2.BZ2File(oth_path, 'rb').read())
+    # Gzip uncompression
+    elif pri_path.endswith(".gz"):
+        open(new_pri_path, 'wb').write(gzip.open(pri_path, 'rb').read())
+        open(new_fil_path, 'wb').write(gzip.open(fil_path, 'rb').read())
+        open(new_oth_path, 'wb').write(gzip.open(oth_path, 'rb').read())
 
     # Read decompressed repo data
     pri = primarymetadata_from_xml_factory(new_pri_path, pri_path)
@@ -348,14 +362,21 @@ def xml_onerepo_factory(repopath, remove_tmp=True):
 
 
 def sqlite_onerepo_factory(repopath, remove_tmp=True):
-    pri_path = os.path.join(repopath, "primary.sqlite.bz2")
-    fil_path = os.path.join(repopath, "filelists.sqlite.bz2")
-    oth_path = os.path.join(repopath, "other.sqlite.bz2")
+    pri_path = None
+    fil_path = None
+    oth_path = None
+
+    for fname in os.listdir(repopath):
+        if "primary.sqlite." in fname:
+            pri_path = os.path.join(repopath, fname)
+        elif "filelists.sqlite." in fname:
+            fil_path = os.path.join(repopath, fname)
+        elif "other.sqlite." in fname:
+            oth_path = os.path.join(repopath, fname)
 
     # Check if all three repofiles (primary, filelists, other) exists
-    for filename in (pri_path, fil_path, oth_path):
-        if not os.path.exists(filename):
-            raise IOError("File '%s' doesn't exist" % filename)
+    if not pri_path or not fil_path or not oth_path:
+        raise IOError("Some sqlite file are missing")
 
     # Create tempdir
     tmpdir = tempfile.mkdtemp()
@@ -363,10 +384,16 @@ def sqlite_onerepo_factory(repopath, remove_tmp=True):
     new_fil_path = os.path.join(tmpdir, "filelists.sqlite")
     new_oth_path = os.path.join(tmpdir, "other.sqlite")
 
-    # Bzip2 decompression
-    open(new_pri_path, 'wb').write(bz2.BZ2File(pri_path, 'rb').read())
-    open(new_fil_path, 'wb').write(bz2.BZ2File(fil_path, 'rb').read())
-    open(new_oth_path, 'wb').write(bz2.BZ2File(oth_path, 'rb').read())
+    # Bzip2 uncompression
+    if pri_path.endswith(".bz2"):
+        open(new_pri_path, 'wb').write(bz2.BZ2File(pri_path, 'rb').read())
+        open(new_fil_path, 'wb').write(bz2.BZ2File(fil_path, 'rb').read())
+        open(new_oth_path, 'wb').write(bz2.BZ2File(oth_path, 'rb').read())
+    # Gzip uncompression
+    elif pri_path.endswith(".gz"):
+        open(new_pri_path, 'wb').write(gzip.open(pri_path, 'rb').read())
+        open(new_fil_path, 'wb').write(gzip.open(fil_path, 'rb').read())
+        open(new_oth_path, 'wb').write(gzip.open(oth_path, 'rb').read())
 
     # Read decompressed repo data
     pri = primarymetadata_from_sqlite_factory(new_pri_path, pri_path)
@@ -390,12 +417,17 @@ def completerepo_factory(repopath, sqliteauto=True, sqlite=False):
     if sqlite:
         sqlrepo = sqlite_onerepo_factory(repopath, remove_tmp=False)
     elif sqliteauto:
-        pri_path = os.path.join(repopath, "primary.sqlite.bz2")
-        fil_path = os.path.join(repopath, "filelists.sqlite.bz2")
-        oth_path = os.path.join(repopath, "other.sqlite.bz2")
-        if os.path.exists(pri_path) and \
-           os.path.exists(fil_path) and \
-           os.path.exists(oth_path):
+        pri = False
+        fil = False
+        oth = False
+        for fname in os.listdir(repopath):
+            if fname.endswith("primary.sqlite.bz2") or fname.endswith("primary.sqlite.gz"):
+                pri = True
+            if fname.endswith("filename.sqlite.bz2") or fname.endswith("filename.sqlite.gz"):
+                fil = True
+            if fname.endswith("other.sqlite.bz2") or fname.endswith("other.sqlite.gz"):
+                oth = True
+        if pri and fil and oth:
             sqlrepo = sqlite_onerepo_factory(repopath, remove_tmp=False)
     md  = repomdmetadata_from_xml_factory(os.path.join(repopath, "repomd.xml"))
     return CompleteRepo(xmlrepo, sqlrepo, md)
