@@ -225,8 +225,9 @@ class CompleteRepo(object):
                 print "Warning: Second repo has not Sqlite database!"
 
         # repomd.xml files check
-        diff = self.md.diff(other.md)
-        if diff:
-            completerepo_diff.md_diff = diff
+        if self.md:
+            diff = self.md.diff(other.md)
+            if diff:
+                completerepo_diff.md_diff = diff
 
         return completerepo_diff

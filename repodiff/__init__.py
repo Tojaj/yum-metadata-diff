@@ -429,5 +429,9 @@ def completerepo_factory(repopath, sqliteauto=True, sqlite=False):
                 oth = True
         if pri and fil and oth:
             sqlrepo = sqlite_onerepo_factory(repopath, remove_tmp=False)
-    md  = repomdmetadata_from_xml_factory(os.path.join(repopath, "repomd.xml"))
+
+    md = None
+    md_path = os.path.join(repopath, "repomd.xml")
+    if os.path.exists(md_path):
+        md  = repomdmetadata_from_xml_factory(md_path)
     return CompleteRepo(xmlrepo, sqlrepo, md)
