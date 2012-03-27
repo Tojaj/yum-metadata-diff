@@ -30,7 +30,7 @@ MD_NS = "{http://linux.duke.edu/metadata/repo}"
 #
 # XML
 #
-
+import sys
 def _parse_pco(elem, requires=False):
     req_set = set([])
     for felem in elem:
@@ -41,7 +41,7 @@ def _parse_pco(elem, requires=False):
                    felem.get("ver"),
                    felem.get("rel"))
             if requires:
-                res += (bool(felem.get("pre")),)
+                res += (bool(int(felem.get("pre", 0))),)
         req_set.add(res)
     return req_set
 
