@@ -79,6 +79,7 @@ def primarymetadata_from_xml_factory(xmlpath, archpath):
                 pp.size_archive   = int(elem.get("archive"))
             elif elem.tag.endswith("location"):
                 pp.location = elem.get("href")
+                pp.location_base = elem.get("{http://www.w3.org/XML/1998/namespace}base")
             elif elem.tag.endswith("format"):
                 for felem in elem:
                     if felem.tag.endswith("license"):
