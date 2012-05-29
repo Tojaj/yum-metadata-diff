@@ -209,7 +209,7 @@ class CompleteRepo(object):
             is_ok &= self._check_one_archive(data, obj.path, obj.archpath, verbose)
         return is_ok
 
-    def diff(self, other):
+    def diff(self, other, ignore_missing_sqlite=True):
         completerepo_diff = CompleteRepoDiff()
         diff = self.xml_rep.diff(other.xml_rep)
         if diff:
@@ -219,10 +219,11 @@ class CompleteRepo(object):
             if diff:
                 completerepo_diff.sql_repo_diff = diff
         else:
-            if not self.sql_rep:
-                print "Warning: First repo has not Sqlite database!"
-            else:
-                print "Warning: Second repo has not Sqlite database!"
+            if not ignore_missing_sqlite:
+                if not self.sql_rep:
+                    print "Warning: First repo has not Sqlite database!"
+                else:
+                    print "Warning: Second repo has not Sqlite database!"
 
         # repomd.xml files check
         if self.md:
