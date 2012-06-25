@@ -7,6 +7,7 @@ from lxml import etree
 import os
 import gzip
 import bz2
+import liblzma
 import tempfile
 import shutil
 import os.path
@@ -242,7 +243,20 @@ def filelistsmetadata_from_sqlite_factory(sqlitepath, archpath):
                                                                     (pkgkey,))
 
         for dirname, filenames, filetypes in cur:
-            for filename, ftype in zip(filenames.split('/'), list(filetypes)):
+            # XXX: If there is dir without name '/' it's splited into 2 empty string
+            #      so, if there are two empty string next to each other, replace
+            #      it with only one empty string
+            splited_filenames = filenames.split('/')
+            filtered_splited_filenames = []
+            if len(filenames):
+                filtered_splited_filenames.append(splited_filenames[0])
+            for i in xrange(1, len(filenames.split('/'))):
+                if splited_filenames[i] == '' and splited_filenames[i-1] == '':
+                    continue
+                filtered_splited_filenames.append(splited_filenames[i])
+            # XXX: End
+
+            for filename, ftype in zip(filtered_splited_filenames, list(filetypes)):
                 path = os.path.join(dirname, filename)
                 if ftype == 'f':
                     fp.files.add(path)
@@ -339,16 +353,21 @@ def xml_onerepo_factory(repopath, remove_tmp=True):
     new_fil_path = os.path.join(tmpdir, "filelists.xml")
     new_oth_path = os.path.join(tmpdir, "other.xml")
 
-    # Bzip2 uncompression
+    # Bzip2 decompression
     if pri_path.endswith(".bz2"):
         open(new_pri_path, 'wb').write(bz2.BZ2File(pri_path, 'rb').read())
         open(new_fil_path, 'wb').write(bz2.BZ2File(fil_path, 'rb').read())
         open(new_oth_path, 'wb').write(bz2.BZ2File(oth_path, 'rb').read())
-    # Gzip uncompression
+    # Gzip decompression
     elif pri_path.endswith(".gz"):
         open(new_pri_path, 'wb').write(gzip.open(pri_path, 'rb').read())
         open(new_fil_path, 'wb').write(gzip.open(fil_path, 'rb').read())
         open(new_oth_path, 'wb').write(gzip.open(oth_path, 'rb').read())
+    # xz decompression
+    elif pri_path.endswith(".xz"):
+        open(new_pri_path, 'wb').write(liblzma.decompress(open(pri_path, 'rb').read()))
+        open(new_fil_path, 'wb').write(liblzma.decompress(open(fil_path, 'rb').read()))
+        open(new_oth_path, 'wb').write(liblzma.decompress(open(oth_path, 'rb').read()))
 
     # Read decompressed repo data
     pri = primarymetadata_from_xml_factory(new_pri_path, pri_path)
@@ -395,6 +414,11 @@ def sqlite_onerepo_factory(repopath, remove_tmp=True):
         open(new_pri_path, 'wb').write(gzip.open(pri_path, 'rb').read())
         open(new_fil_path, 'wb').write(gzip.open(fil_path, 'rb').read())
         open(new_oth_path, 'wb').write(gzip.open(oth_path, 'rb').read())
+    # xz decompression
+    elif pri_path.endswith(".xz"):
+        open(new_pri_path, 'wb').write(liblzma.decompress(open(pri_path, 'rb').read()))
+        open(new_fil_path, 'wb').write(liblzma.decompress(open(fil_path, 'rb').read()))
+        open(new_oth_path, 'wb').write(liblzma.decompress(open(oth_path, 'rb').read()))
 
     # Read decompressed repo data
     pri = primarymetadata_from_sqlite_factory(new_pri_path, pri_path)
@@ -422,11 +446,14 @@ def completerepo_factory(repopath, sqliteauto=True, sqlite=False):
         fil = False
         oth = False
         for fname in os.listdir(repopath):
-            if fname.endswith("primary.sqlite.bz2") or fname.endswith("primary.sqlite.gz"):
+            if fname.endswith("primary.sqlite.bz2") or fname.endswith("primary.sqlite.gz") \
+               or fname.endswith("primary.sqlite.xz"):
                 pri = True
-            if fname.endswith("filelists.sqlite.bz2") or fname.endswith("filelists.sqlite.gz"):
+            if fname.endswith("filelists.sqlite.bz2") or fname.endswith("filelists.sqlite.gz") \
+               or fname.endswith("filelists.sqlite.xz"):
                 fil = True
-            if fname.endswith("other.sqlite.bz2") or fname.endswith("other.sqlite.gz"):
+            if fname.endswith("other.sqlite.bz2") or fname.endswith("other.sqlite.gz") \
+               or fname.endswith("other.sqlite.xz"):
                 oth = True
         if pri and fil and oth:
             sqlrepo = sqlite_onerepo_factory(repopath, remove_tmp=False)

@@ -15,6 +15,15 @@ class Package(object):
         for key in self.DIFF_ATTR:
             a = getattr(self, key)
             b = getattr(other, key)
+
+            # Exceptions in comparsion
+
+            if key in ("location_base", "vendor"):
+                if a is None and b == '':
+                    continue  # This is OK
+
+            # End of exceptions
+
             if a != b:
                 ppd.changed_attributes.add(key)
                 ppd.attr_values[key] = (a, b)
