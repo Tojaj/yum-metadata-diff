@@ -206,6 +206,9 @@ class CompleteRepo(object):
                 obj = self.sql_rep.pri
             elif data.name == "primary":
                 obj = self.xml_rep.pri
+            else:
+                # TODO: updateinfo, comps, etc.
+                continue
             is_ok &= self._check_one_archive(data, obj.path, obj.archpath, verbose)
         return is_ok
 
