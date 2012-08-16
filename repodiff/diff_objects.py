@@ -45,7 +45,7 @@ class MetadataDiff(object):
         self.missing_packages = set()  # set of checksums
         self.added_packages   = set()  # set of checksums
         self.changed_packages = set()  # set of checksums
-        self.packages_diffs = {}       
+        self.packages_diffs = {}
         # self.packges_diffs keys are values from self.changed_packages
         # and values are PackageDiff objects.
 

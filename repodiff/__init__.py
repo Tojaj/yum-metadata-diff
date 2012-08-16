@@ -257,7 +257,16 @@ def filelistsmetadata_from_sqlite_factory(sqlitepath, archpath):
             # XXX: End
 
             for filename, ftype in zip(filtered_splited_filenames, list(filetypes)):
-                path = os.path.join(dirname, filename)
+                # If in XML is "foo" in db will be DIR: "." FILE: "foo"
+                # Thus result will be "./foo" after join, so if dir is "."
+                # do not do a join
+                if dirname != ".":
+                    path = os.path.join(dirname, filename)
+                else:
+                    path = filename
+
+#                open("fout").write("%s [%s | %s]\n" % (path, dirname, filename))
+
                 if ftype == 'f':
                     fp.files.add(path)
                 elif ftype == 'd':
@@ -297,10 +306,23 @@ def othermetadata_from_sqlite_factory(sqlitepath, archpath):
 
 def repomdmetadata_from_xml_factory(xmlpath):
     rm_obj = RepomdMetadata(xmlpath)
+
+    # Parse tags
+    for _, elements in etree.iterparse(open(xmlpath), tag="%stags" % MD_NS):
+        for elem in elements:
+            if elem.tag.endswith("content"):
+                rm_obj.tags.setdefault("content", set()).add(elem.text)
+            if elem.tag.endswith("repo"):
+                rm_obj.tags.setdefault("repo", set()).add(elem.text)
+            if elem.tag.endswith("distro"):
+                rm_obj.tags.setdefault("distro", set()).add((elem.get("cpeid"),
+                                                             elem.text))
+
+    # Iter over data elements  (<data type="primary">, ...)
     for _, elements in etree.iterparse(open(xmlpath), tag="%sdata" % MD_NS):
         re = RepomdData()
         re.name = elements.get("type")
-        # Checksum of metadata could be different so use 
+        # Checksum of metadata could be different so use
         # type instead of real checksum
         re.checksum = elements.get("type")
         for elem in elements:

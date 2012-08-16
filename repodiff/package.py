@@ -18,7 +18,9 @@ class Package(object):
 
             # Exceptions in comparsion
 
-            if key in ("location_base", "vendor"):
+            # None (NULL) and "" have same meaning
+            if key in ("location_base", "vendor", "description",
+                       "sourcerpm"):
                 if a is None and b == '':
                     continue  # This is OK
 
