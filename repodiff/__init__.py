@@ -373,8 +373,12 @@ def xml_onerepo_factory(repopath, remove_tmp=True):
             oth_path = os.path.join(repopath, fname)
 
     # Check if all three repofiles (primary, filelists, other) exists
-    if not pri_path or not fil_path or not oth_path:
-        raise IOError("Some xml file are missing")
+    if not pri_path:
+        raise IOError("XML primary is missing in %s" % repopath)
+    if not fil_path:
+        raise IOError("XML filelists is missing in %s" % repopath)
+    if not oth_path:
+        raise IOError("XML other is missing in %s" % repopath)
 
     # Create tempdir
     tmpdir = tempfile.mkdtemp()
@@ -491,4 +495,4 @@ def completerepo_factory(repopath, sqliteauto=True, sqlite=False):
     md_path = os.path.join(repopath, "repomd.xml")
     if os.path.exists(md_path):
         md  = repomdmetadata_from_xml_factory(md_path)
-    return CompleteRepo(xmlrepo, sqlrepo, md)
+    return CompleteRepo(repopath, xmlrepo, sqlrepo, md)

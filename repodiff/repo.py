@@ -1,6 +1,7 @@
 import shutil
 import os
 from diff_objects import OneRepoDiff, CompleteRepoDiff
+from repomd import RepomdData
 from pprint import pformat
 from kobo.shortcuts import compute_file_checksums
 
@@ -84,7 +85,8 @@ class OneRepo(object):
 
 class CompleteRepo(object):
 
-    def __init__(self, xml_repo, sqlite_repo=None, md=None):
+    def __init__(self, repopath, xml_repo, sqlite_repo=None, md=None):
+        self.repopath = repopath
         self.xml_rep = xml_repo
         self.sql_rep = sqlite_repo
         self.md = md
@@ -155,7 +157,7 @@ class CompleteRepo(object):
             self.vprint(diff.pprint(), verbose)
             is_ok = False
 
-        self.vprint("> Checking files by repomd.xml...", verbose)
+        self.vprint("> Checking repomd.xml sanity...", verbose)
         is_ok &= self.check_sanity_by_repomd(verbose)
         return is_ok
 
@@ -191,6 +193,18 @@ class CompleteRepo(object):
         is_ok = True
         if not self.md:
             return is_ok
+
+        # Check if files exists
+        for item in self.md:
+            if not isinstance(item, RepomdData) or not item.location_href:
+                continue
+            basename = os.path.basename(item.location_href)
+            path = os.path.join(self.repopath, basename)
+            if not os.path.isfile(path):
+                self.vprint("Repomd sanity check FAILED", verbose)
+                self.vprint(" - %s doesn't exist" % path, verbose)
+                is_ok = False
+
         for data in self.md:
             if data.name.endswith("_db") and not self.sql_rep:
                 continue
