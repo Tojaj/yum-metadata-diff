@@ -1,5 +1,5 @@
 from repodiff.primary import PrimaryMetadata, PrimaryPackage
-from repodiff.filelists import FilelistsMetadata, FilelistsPackage
+from repodiff.filelists import FilelistsMetadata, FilelistsPackage, FilelistsDbPackage
 from repodiff.other import OtherMetadata, OtherPackage
 from repodiff.repomd import RepomdMetadata, RepomdData
 from repodiff.repo import OneRepo, CompleteRepo
@@ -233,7 +233,7 @@ def filelistsmetadata_from_sqlite_factory(sqlitepath, archpath):
     fil_cur = con.cursor()
     fil_cur.execute('SELECT * FROM packages')
     for row in fil_cur:
-        fp = FilelistsPackage()
+        fp = FilelistsDbPackage()
         pkgkey = row[0]
 
         fp.checksum = row[1]
@@ -269,10 +269,15 @@ def filelistsmetadata_from_sqlite_factory(sqlitepath, archpath):
 
                 if ftype == 'f':
                     fp.files.add(path)
+                    fp.files_db.add(filename)
                 elif ftype == 'd':
                     fp.dirs.add(path)
+                    fp.dirs_db.add(filename)
                 else:
                     fp.ghosts.add(path)
+                    fp.ghosts_db.add(filename)
+                fp.dbdirectories.append(dirname)
+        fp.dbdirectories = sorted(fp.dbdirectories)
         fil_obj.append(fp)
     return fil_obj
 

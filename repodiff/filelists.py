@@ -18,6 +18,19 @@ class FilelistsPackage(Package):
         self.ghosts = set()
 
 
+class FilelistsDbPackage(FilelistsPackage):
+
+    DIFF_ATTR = ('checksum', 'files', 'dirs', 'ghosts',
+                 'dbdirectories', 'files_db', 'dirs_db', 'ghosts_db')
+
+    def __init__(self):
+        FilelistsPackage.__init__(self)
+        self.dbdirectories = list() # Directories from filelists filelist db table
+        self.files_db = set() # Raw splited files from db
+        self.dirs_db = set() # Raw splited dirs from db
+        self.ghosts_db = set() # Ras splited ghosts from db
+
+
 class FilelistsMetadata(Metadata):
     def __init__(self, *args, **kwargs):
         Metadata.__init__(self, *args, **kwargs)

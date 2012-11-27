@@ -12,7 +12,11 @@ class Package(object):
 
     def diff(self, other):
         ppd = self.DIFF_CLASS()
-        for key in self.DIFF_ATTR:
+
+        # Compare only what can be compared
+        diff_attrs = set(self.DIFF_ATTR).intersection(set(other.DIFF_ATTR))
+
+        for key in diff_attrs:
             a = getattr(self, key)
             b = getattr(other, key)
 
