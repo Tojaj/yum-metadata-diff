@@ -49,7 +49,7 @@ def _parse_pco(elem, requires=False):
 
 def primarymetadata_from_xml_factory(xmlpath, archpath):
     pri_obj = PrimaryMetadata(xmlpath, archpath)
-    for _, elements in etree.iterparse(open(xmlpath), tag="%spackage" % PRI_NS):
+    for _, elements in etree.iterparse(xmlpath, tag="%spackage" % PRI_NS):
         pp = PrimaryPackage()
         for elem in elements:
             if elem.tag.endswith("name"):
@@ -118,7 +118,7 @@ def primarymetadata_from_xml_factory(xmlpath, archpath):
 
 def filelistsmetadata_from_xml_factory(xmlpath, archpath):
     fil_obj = FilelistsMetadata(xmlpath, archpath)
-    for _, elements in etree.iterparse(open(xmlpath), tag="%spackage" % FIL_NS):
+    for _, elements in etree.iterparse(xmlpath, tag="%spackage" % FIL_NS):
         fp = FilelistsPackage()
         fp.checksum = elements.get("pkgid")
         fp.arch     = elements.get("arch")
@@ -142,7 +142,7 @@ def filelistsmetadata_from_xml_factory(xmlpath, archpath):
 
 def othermetadata_from_xml_factory(xmlpath, archpath):
     oth_obj = OtherMetadata(xmlpath, archpath)
-    for _, elements in etree.iterparse(open(xmlpath), tag="%spackage" % OTH_NS):
+    for _, elements in etree.iterparse(xmlpath, tag="%spackage" % OTH_NS):
         op = OtherPackage()
         op.checksum = elements.get("pkgid")
         op.arch     = elements.get("arch")
@@ -312,7 +312,7 @@ def othermetadata_from_sqlite_factory(sqlitepath, archpath):
 def repomdmetadata_from_xml_factory(xmlpath):
     rm_obj = RepomdMetadata(xmlpath)
 
-    for _, elements in etree.iterparse(open(xmlpath)):
+    for _, elements in etree.iterparse(xmlpath):
         for elem in elements:
 
             # Get revision
@@ -331,7 +331,7 @@ def repomdmetadata_from_xml_factory(xmlpath):
                                                                      subelem.text))
 
     # Iter over data elements  (<data type="primary">, ...)
-    for _, elements in etree.iterparse(open(xmlpath), tag="%sdata" % MD_NS):
+    for _, elements in etree.iterparse(xmlpath, tag="%sdata" % MD_NS):
         re = RepomdData()
         re.name = elements.get("type")
         # Checksum of metadata could be different so use
