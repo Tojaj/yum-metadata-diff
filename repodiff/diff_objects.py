@@ -175,7 +175,7 @@ class PackageDiff(object):
         for difference in self.differences:
             name, a, b, item_type, desc = difference
 
-            msg += "    %s" % name
+            msg += "     %s" % name
             if item_type:
                 msg += " [%s]" % item_type
             if desc:
