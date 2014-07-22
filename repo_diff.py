@@ -20,17 +20,18 @@ if __name__ == "__main__":
     repodir2 = None
 
     if len(args) < 1:
-        print "Error: You must specify a directory with repodata."
-        sys.exit(1)
+        parser.error("You must specify a directory with repodata.")
     if options.compare and len(args) != 2:
-        print "Error: With \"--compare\" you must specify exactly two directories."
-        sys.exit(1)
+        parser.error("With \"--compare\" you must specify exactly two directories.")
+    if not options.compare and len(args) != 1:
+        parser.error("Only one single directory can be specified for --check "
+                      "option. (Didn't you forget to use --compare?)")
 
     repodir = args[0]
     verbose = options.verbose
 
-    # Compare metadata of two repositories
     if options.compare:
+        # Compare metadata of two repositories
         repodir2 = args[1]
         cr1 = completerepo_factory(repodir)
         cr2 = completerepo_factory(repodir2)
@@ -39,12 +40,12 @@ if __name__ == "__main__":
             print diff.pprint()
             print "Repos are not same"
             sys.exit(2)
-        sys.exit(0)
+    else:
+        # Sanity check of metadata
+        cr1 = completerepo_factory(repodir)
+        ret = cr1.check_sanity(verbose=verbose)
+        if not ret:
+            print "Repodata is not sane"
+            sys.exit(2)
 
-    # Sanity check of metadata
-    cr1 = completerepo_factory(repodir)
-    ret = cr1.check_sanity(verbose=verbose)
-    if not ret:
-        print "Repodata is not sane"
-        sys.exit(2)
     sys.exit(0)
