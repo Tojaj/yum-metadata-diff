@@ -5,12 +5,13 @@ from repodiff.repomd import RepomdMetadata, RepomdData
 from repodiff.repo import OneRepo, CompleteRepo
 from lxml import etree
 import os
-import gzip
+import sys
 import bz2
-import liblzma
-import tempfile
+import gzip
 import shutil
 import os.path
+import liblzma
+import tempfile
 try:
     import sqlite3 as sqlite
 except ImportError:
@@ -28,13 +29,38 @@ FIL_NS = "{http://linux.duke.edu/metadata/filelists}"
 OTH_NS = "{http://linux.duke.edu/metadata/other}"
 MD_NS = "{http://linux.duke.edu/metadata/repo}"
 
+class MyElement(object):
+    def __init__(self, element):
+        self.element = element
+
+    def get(self, name, default=None):
+        res = self.element.get(name, default)
+        if isinstance(res, basestring):
+            return unicode(res)
+        return res
+
+    @property
+    def text(self):
+        res = self.element.text
+        if isinstance(res, basestring):
+            return unicode(res)
+        return res
+
+    def __getattr__(self, name):
+        return getattr(self.element, name)
+
+    def __iter__(self):
+        return self.element.__iter__()
+
 #
 # XML
 #
-import sys
+
+
 def _parse_pco(elem, requires=False):
     req_set = set([])
     for felem in elem:
+        felem = MyElement(felem)
         if felem.tag.endswith("entry"):
             res = (felem.get("name"),
                    felem.get("flags"),
@@ -50,8 +76,10 @@ def _parse_pco(elem, requires=False):
 def primarymetadata_from_xml_factory(xmlpath, archpath):
     pri_obj = PrimaryMetadata(xmlpath, archpath)
     for _, elements in etree.iterparse(xmlpath, tag="%spackage" % PRI_NS):
+        elements = MyElement(elements)
         pp = PrimaryPackage()
         for elem in elements:
+            elem = MyElement(elem)
             if elem.tag.endswith("name"):
                 pp.name = elem.text
             elif elem.tag.endswith("arch"):
@@ -119,11 +147,13 @@ def primarymetadata_from_xml_factory(xmlpath, archpath):
 def filelistsmetadata_from_xml_factory(xmlpath, archpath):
     fil_obj = FilelistsMetadata(xmlpath, archpath)
     for _, elements in etree.iterparse(xmlpath, tag="%spackage" % FIL_NS):
+        elements = MyElement(elements)
         fp = FilelistsPackage()
         fp.checksum = elements.get("pkgid")
         fp.arch     = elements.get("arch")
         fp.name     = elements.get("name")
         for elem in elements:
+            elem = MyElement(elem)
             if elem.tag.endswith("version"):
                 fp.epoch   = elem.get("epoch")
                 fp.version = elem.get("ver")
@@ -143,11 +173,13 @@ def filelistsmetadata_from_xml_factory(xmlpath, archpath):
 def othermetadata_from_xml_factory(xmlpath, archpath):
     oth_obj = OtherMetadata(xmlpath, archpath)
     for _, elements in etree.iterparse(xmlpath, tag="%spackage" % OTH_NS):
+        elements = MyElement(elements)
         op = OtherPackage()
         op.checksum = elements.get("pkgid")
         op.arch     = elements.get("arch")
         op.name     = elements.get("name")
         for elem in elements:
+            elem = MyElement(elem)
             if elem.tag.endswith("version"):
                 op.epoch   = elem.get("epoch")
                 op.version = elem.get("ver")
@@ -313,7 +345,9 @@ def repomdmetadata_from_xml_factory(xmlpath):
     rm_obj = RepomdMetadata(xmlpath)
 
     for _, elements in etree.iterparse(xmlpath):
+        elements = MyElement(elements)
         for elem in elements:
+            elem = MyElement(elem)
 
             # Get revision
             if elem.tag.endswith("revision"):
@@ -332,12 +366,14 @@ def repomdmetadata_from_xml_factory(xmlpath):
 
     # Iter over data elements  (<data type="primary">, ...)
     for _, elements in etree.iterparse(xmlpath, tag="%sdata" % MD_NS):
+        elements = MyElement(elements)
         re = RepomdData()
         re.name = elements.get("type")
         # Checksum of metadata could be different so use
         # type instead of real checksum
         re.checksum = elements.get("type")
         for elem in elements:
+            elem = MyElement(elem)
             if elem.tag.endswith("location"):
                 re.location_href = elem.get("href")
             elif elem.tag.endswith("open-size"):
