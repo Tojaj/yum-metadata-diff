@@ -18,6 +18,12 @@ class Metadata(object):
             self.name_to_chksum[ppackage.name] = ppackage.checksum
             self.chksum_to_name[ppackage.checksum] = ppackage.name
 
+    def get(self, name):
+        key = self.name_to_chksum.get(name)
+        if not key:
+            return None
+        return self.packages.get(key)
+
     def diff(self, other):
         pmd = MetadataDiff()
         a = set(self.packages.keys())

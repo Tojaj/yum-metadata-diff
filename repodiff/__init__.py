@@ -400,19 +400,8 @@ def repomdmetadata_from_xml_factory(xmlpath):
 # One repo
 #
 
-def xml_onerepo_factory(repopath, remove_tmp=True):
-    pri_path = None
-    fil_path = None
-    oth_path = None
-
-    for fname in os.listdir(repopath):
-        if "primary.xml." in fname:
-            pri_path = os.path.join(repopath, fname)
-        elif "filelists.xml." in fname:
-            fil_path = os.path.join(repopath, fname)
-        elif "other.xml." in fname:
-            oth_path = os.path.join(repopath, fname)
-
+def xml_onerepo_factory(pri_path=None, fil_path=None,
+                        oth_path=None, remove_tmp=True):
     # Check if all three repofiles (primary, filelists, other) exists
     if not pri_path:
         raise IOError("XML primary is missing in %s" % repopath)
@@ -454,20 +443,19 @@ def xml_onerepo_factory(repopath, remove_tmp=True):
         tmpdir = None
     return OneRepo(pri, fil, oth, tmpdir)
 
-
-def sqlite_onerepo_factory(repopath, remove_tmp=True):
-    pri_path = None
-    fil_path = None
-    oth_path = None
-
+def xml_onerepo_from_path_factory(repopath, remove_tmp=True):
+    pri_path = fil_path = oth_path = None
     for fname in os.listdir(repopath):
-        if "primary.sqlite." in fname:
+        if "primary.xml." in fname:
             pri_path = os.path.join(repopath, fname)
-        elif "filelists.sqlite." in fname:
+        elif "filelists.xml." in fname:
             fil_path = os.path.join(repopath, fname)
-        elif "other.sqlite." in fname:
+        elif "other.xml." in fname:
             oth_path = os.path.join(repopath, fname)
+    return xml_onerepo_factory(pri_path, fil_path, oth_path, remove_tmp)
 
+def sqlite_onerepo_factory(pri_path=None, fil_path=None,
+                           oth_path=None, remove_tmp=True):
     # Check if all three repofiles (primary, filelists, other) exists
     if not pri_path or not fil_path or not oth_path:
         raise IOError("Some sqlite file are missing")
@@ -505,20 +493,47 @@ def sqlite_onerepo_factory(repopath, remove_tmp=True):
         tmpdir = None
     return OneRepo(pri, fil, oth, tmpdir)
 
+def sqlite_onerepo_from_path_factory(repopath, remove_tmp=True):
+    pri_path = fil_path = oth_path = None
+    for fname in os.listdir(repopath):
+        if "primary.sqlite." in fname:
+            pri_path = os.path.join(repopath, fname)
+        elif "filelists.sqlite." in fname:
+            fil_path = os.path.join(repopath, fname)
+        elif "other.sqlite." in fname:
+            oth_path = os.path.join(repopath, fname)
+    return sqlite_onerepo_factory(pri_path, fil_path, oth_path, remove_tmp)
 
 #
 # Complete repo
 #
 
 def completerepo_factory(repopath, sqliteauto=True, sqlite=False):
-    xmlrepo = xml_onerepo_factory(repopath, remove_tmp=False)
+    # Load repomd.xml
+    md = None
+    md_path = os.path.join(repopath, "repodata/repomd.xml")
+    if os.path.exists(md_path):
+        md  = repomdmetadata_from_xml_factory(md_path)
+    else:
+        print "Warning: repomd.xml is missing (%s)" % md_path
+
+    # Load xml metadata (primary, filelists, other)
+    if md:
+        pri_path = fil_path = oth_path = None
+        if md.get("primary") and md.get("primary").location_href:
+            pri_path = os.path.join(repopath, md.get("primary").location_href)
+        if md.get("filelists") and md.get("filelists").location_href:
+            fil_path = os.path.join(repopath, md.get("filelists").location_href)
+        if md.get("other") and md.get("other").location_href:
+            oth_path = os.path.join(repopath, md.get("other").location_href)
+        xmlrepo = xml_onerepo_factory(pri_path, fil_path, oth_path, remove_tmp=True)
+    else:
+        xmlrepo = xml_onerepo_from_path_factory(repopath, remove_tmp=True)
+
+    # Load sqlite metadata (primary, filelists, other)
     sqlrepo = None
-    if sqlite:
-        sqlrepo = sqlite_onerepo_factory(repopath, remove_tmp=False)
-    elif sqliteauto:
-        pri = False
-        fil = False
-        oth = False
+    if sqliteauto:
+        pri = fil = oth = False
         for fname in os.listdir(repopath):
             if fname.endswith("primary.sqlite.bz2") or fname.endswith("primary.sqlite.gz") \
                or fname.endswith("primary.sqlite.xz"):
@@ -530,10 +545,19 @@ def completerepo_factory(repopath, sqliteauto=True, sqlite=False):
                or fname.endswith("other.sqlite.xz"):
                 oth = True
         if pri and fil and oth:
-            sqlrepo = sqlite_onerepo_factory(repopath, remove_tmp=False)
+            sqlite = True
 
-    md = None
-    md_path = os.path.join(repopath, "repomd.xml")
-    if os.path.exists(md_path):
-        md  = repomdmetadata_from_xml_factory(md_path)
+    if sqlite:
+        if md:
+            pri_path = fil_path = oth_path = None
+            if md.get("primary_db") and md.get("primary_db").location_href:
+                pri_path = os.path.join(repopath, md.get("primary_db").location_href)
+            if md.get("filelists_db") and md.get("filelists_db").location_href:
+                fil_path = os.path.join(repopath, md.get("filelists_db").location_href)
+            if md.get("other_db") and md.get("other_db").location_href:
+                oth_path = os.path.join(repopath, md.get("other_db").location_href)
+            sqlite = sqlite_onerepo_factory(pri_path, fil_path, oth_path, remove_tmp=True)
+        else:
+            sqlite = sqlite_onerepo_from_path_factory(repopath, remove_tmp=True)
+
     return CompleteRepo(repopath, xmlrepo, sqlrepo, md)
