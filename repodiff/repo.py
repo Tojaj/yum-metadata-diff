@@ -28,7 +28,7 @@ class OneRepo(object):
         return self.pri.name_to_checksum(name)
 
     def check_sanity(self, verbose=False):
-        """Check if packages in primary, filelists 
+        """Check if packages in primary, filelists
         and other metadata files correspond."""
         is_ok = True
         pri_keys = self.pri.get_package_checksums()

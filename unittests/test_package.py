@@ -42,9 +42,9 @@ class TestPackage(unittest.TestCase):
         pkg2.name = name_b
         diff = pkg1.diff(pkg2)
         self.assertTrue(diff)
-        self.assertEqual(diff.changed_attributes, set(['checksum', 'name']))
-        self.assertEqual(diff.attr_values, {'checksum': (chksum_a, chksum_b),
-                                            'name': (name_a, name_b)})
+        self.assertEqual(diff.differences,
+                        [('checksum', 'foo', 'foobbb', 'Attribute', None),
+                         ('name', 'bar', 'barbbb', 'Attribute', None)])
 
         # Packages have one same and one different attribute
         pkg1 = TestPackage()
@@ -55,8 +55,6 @@ class TestPackage(unittest.TestCase):
         pkg2.name = name_b
         diff = pkg1.diff(pkg2)
         self.assertTrue(diff)
-        self.assertEqual(diff.changed_attributes, set(['name']))
-        self.assertEqual(diff.attr_values, {'name': (name_a, name_b)})
 
         pkg1 = TestPackage()
         pkg1.checksum = chksum_a
@@ -66,9 +64,6 @@ class TestPackage(unittest.TestCase):
         pkg2.name = name_a
         diff = pkg1.diff(pkg2)
         self.assertTrue(diff)
-        self.assertEqual(diff.changed_attributes, set(['checksum']))
-        self.assertEqual(diff.attr_values, {'checksum': (chksum_a, chksum_b)})
-
 
 if __name__ == "__main__":
     unittest.main()

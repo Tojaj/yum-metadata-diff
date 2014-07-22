@@ -20,7 +20,7 @@ class Package(object):
             a = getattr(self, key)
             b = getattr(other, key)
 
-            # Exceptions in comparsion
+            ### Exceptions in comparsion
 
             # None (NULL) and "" have same meaning
             if key in ("location_base", "vendor", "description",
@@ -28,11 +28,10 @@ class Package(object):
                 if a is None and b == '':
                     continue  # This is OK
 
-            # End of exceptions
+            ### End of exceptions
 
             if a != b:
-                ppd.changed_attributes.add(key)
-                ppd.attr_values[key] = (a, b)
+                ppd.add_difference(key, a, b, "Attribute")
         if ppd:
             return ppd
         return None

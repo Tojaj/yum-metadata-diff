@@ -1,38 +1,204 @@
+import difflib
+import pprint
 import pprint as libpprint
+
+_MAX_LENGTH = 80
+
+def pretty_diff(d1, d2):
+
+    def safe_repr(obj, short=False):
+        try:
+            result = repr(obj)
+        except Exception:
+            result = object.__repr__(obj)
+        if not short or len(result) < _MAX_LENGTH:
+            return result
+        return result[:_MAX_LENGTH] + ' [truncated]...'
+
+    def sequence_diff(seq1, seq2, msg=None, seq_type=None):
+        if seq_type is not None:
+            seq_type_name = seq_type.__name__
+            if not isinstance(seq1, seq_type):
+                return 'First sequence is not a %s: %s' % \
+                        (seq_type_name, safe_repr(seq1))
+            if not isinstance(seq2, seq_type):
+                return 'Second sequence is not a %s: %s' % \
+                        (seq_type_name, safe_repr(seq2))
+        else:
+            seq_type_name = "sequence"
+
+        differing = None
+        try:
+            len1 = len(seq1)
+        except (TypeError, NotImplementedError):
+            differing = 'First %s has no length.    Non-sequence?' % (
+                    seq_type_name)
+
+        if differing is None:
+            try:
+                len2 = len(seq2)
+            except (TypeError, NotImplementedError):
+                differing = 'Second %s has no length.    Non-sequence?' % (
+                        seq_type_name)
+
+        if differing is None:
+            if seq1 == seq2:
+                return
+
+            seq1_repr = safe_repr(seq1)
+            seq2_repr = safe_repr(seq2)
+            if len(seq1_repr) > 30:
+                seq1_repr = seq1_repr[:30] + '...'
+            if len(seq2_repr) > 30:
+                seq2_repr = seq2_repr[:30] + '...'
+            elements = (seq_type_name.capitalize(), seq1_repr, seq2_repr)
+            differing = '%ss differ: %s != %s\n' % elements
+
+            for i in xrange(min(len1, len2)):
+                try:
+                    item1 = seq1[i]
+                except (TypeError, IndexError, NotImplementedError):
+                    differing += ('\nUnable to index element %d of first %s\n' %
+                                 (i, seq_type_name))
+                    break
+
+                try:
+                    item2 = seq2[i]
+                except (TypeError, IndexError, NotImplementedError):
+                    differing += ('\nUnable to index element %d of second %s\n' %
+                                 (i, seq_type_name))
+                    break
+
+                if item1 != item2:
+                    differing += ('\nFirst differing element %d:\n%s\n%s\n' %
+                                 (i, item1, item2))
+                    break
+            else:
+                if (len1 == len2 and seq_type is None and
+                    type(seq1) != type(seq2)):
+                    # The sequences are the same, but have differing types.
+                    return
+
+            if len1 > len2:
+                differing += ('\nFirst %s contains %d additional '
+                             'elements.\n' % (seq_type_name, len1 - len2))
+                try:
+                    differing += ('First extra element %d:\n%s\n' %
+                                  (len2, seq1[len2]))
+                except (TypeError, IndexError, NotImplementedError):
+                    differing += ('Unable to index element %d '
+                                  'of first %s\n' % (len2, seq_type_name))
+            elif len1 < len2:
+                differing += ('\nSecond %s contains %d additional '
+                             'elements.\n' % (seq_type_name, len2 - len1))
+                try:
+                    differing += ('First extra element %d:\n%s\n' %
+                                  (len1, seq2[len1]))
+                except (TypeError, IndexError, NotImplementedError):
+                    differing += ('Unable to index element %d '
+                                  'of second %s\n' % (len1, seq_type_name))
+        standardMsg = differing
+        diffMsg = '\n' + '\n'.join(
+            difflib.ndiff(pprint.pformat(seq1).splitlines(),
+                          pprint.pformat(seq2).splitlines()))
+        return standardMsg + '\n' + diffMsg
+
+    def set_diff(set1, set2, msg=None):
+        try:
+            difference1 = set1.difference(set2)
+        except TypeError, e:
+            return 'invalid type when attempting set difference: %s' % e
+        except AttributeError, e:
+            return 'first argument does not support set difference: %s' % e
+
+        try:
+            difference2 = set2.difference(set1)
+        except TypeError, e:
+            return 'invalid type when attempting set difference: %s' % e
+        except AttributeError, e:
+            return 'second argument does not support set difference: %s' % e
+
+        if not (difference1 or difference2):
+            return
+
+        lines = []
+        if difference1:
+            lines.append('Items in the first set but not the second:')
+            for item in difference1:
+                lines.append(repr(item))
+        if difference2:
+            lines.append('Items in the second set but not the first:')
+            for item in difference2:
+                lines.append(repr(item))
+
+        return '\n'.join(lines)
+
+    diff = None
+
+    if not isinstance(d1, type(d2)):
+        return diff
+    if d1 == d2:
+        return diff
+
+    if isinstance(d1, dict):
+        diff = ('\n' + '\n'.join(difflib.ndiff(
+                pprint.pformat(d1).splitlines(),
+                pprint.pformat(d2).splitlines())))
+    elif isinstance(d1, list):
+        diff = sequence_diff(d1, d2, seq_type=list)
+    elif isinstance(d1, tuple):
+        diff = sequence_diff(d1, d2, seq_type=tuple)
+    elif isinstance(d1, set):
+        diff = set_diff(d1, d2)
+    elif isinstance(d1, frozenset):
+        diff = set_diff(d1, d2)
+    return diff
+
 
 class PackageDiff(object):
     ITEM_NAME = "Package"
 
     def __init__(self):
-        self.changed_attributes = set()  # Set of changed attributes
-        self.attr_values = {}
-        # attr_values look like:
-        # {'attr_name': (first_pkg_attr_val, second_pkg_attr_val), ...}
-        # keys are values from self.changed_attributes
+        self.differences = []
 
     def __nonzero__(self):
-        return bool(len(self.changed_attributes))
+        return bool(len(self.differences))
 
     def __repr__(self):
         return libpprint.pformat(self.__dict__)
 
+    def add_difference(self, name, val_a, val_b, item_type=None, desc=None):
+        self.differences.append((name, val_a, val_b, item_type, desc))
+
     def pprint(self):
         msg = ""
-        for attr in self.changed_attributes:
-            msg += "    Attribute: %s" % attr
-            a = self.attr_values[attr][0]
-            b = self.attr_values[attr][1]
+        for difference in self.differences:
+            name, a, b, item_type, desc = difference
+
+            msg += "    %s" % name
+            if item_type:
+                msg += " [%s]" % item_type
+            if desc:
+                msg += " - %s" % desc
+            msg += "\n"
+
+            nice_diff = pretty_diff(a, b)
+
             if isinstance(a, set):
                 tmp_a = a - b
                 b = b - a
                 a = tmp_a
-                msg += " (Attribute is set -> Show only difference)\n"
+                msg += "    [The difference is set -> Only extra items are shown]\n"
             else:
                 msg += "\n"
             msg += "      1. %s:\n" % self.ITEM_NAME
-            msg += "        %s\n" % libpprint.pformat(a, indent=2)
+            msg += "        %s\n" % libpprint.pformat(a, indent=8)
             msg += "      2. %s:\n" % self.ITEM_NAME
-            msg += "        %s\n" % libpprint.pformat(b, indent=2)
+            msg += "        %s\n" % libpprint.pformat(b, indent=8)
+            if nice_diff:
+                msg += "      Diff:\n"
+                msg += "        %s\n" % "\n        ".join(nice_diff.split('\n'))
+
         return msg
 
 

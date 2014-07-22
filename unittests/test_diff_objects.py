@@ -17,17 +17,15 @@ class TestPackageDiff(unittest.TestCase):
     def test_packagediff(self):
         pkgdiff = PackageDiff()
         self.assertFalse(pkgdiff)
-        self.assertEqual(pkgdiff.changed_attributes, set([]))
-        self.assertEqual(pkgdiff.attr_values, {})
+        self.assertEqual(pkgdiff.differences, [])
 
         key = "attr1"
         val1 = "foo"
         val2 = "bar"
-        pkgdiff.changed_attributes.add(key)
-        pkgdiff.attr_values[key] = (val1, val2)
+        pkgdiff.add_difference(key, val1, val2, "type", "desc")
         self.assertTrue(pkgdiff)
-        self.assertEqual(pkgdiff.changed_attributes, set([key]))
-        self.assertEqual(pkgdiff.attr_values, {key: (val1, val2)})
+        self.assertEqual(pkgdiff.differences,
+                         [(key, val1, val2, "type", "desc")])
 
 
 class TestMetadataDiff(unittest.TestCase):
