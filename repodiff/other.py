@@ -8,15 +8,14 @@ class OtherPackage(Package):
 
     def __init__(self):
         Package.__init__(self)
-        self.arch = ""      #-\
-        #self.name = ""     #--\
-        self.version = ""   #---- This info is available only in XML
-        self.epoch = ""     #--/
-        self.release = ""   #-/
+        #self.arch = ""       #-\
+        #self.name = ""       #--\
+        #self.version = ""    #---- This info is available only in XML
+        #self.epoch = ""      #--/
+        #self.release = ""    #-/
         self.changelogs = []  # [(author, date, text), ...]
 
 
 class OtherMetadata(Metadata):
     def __init__(self, *args, **kwargs):
         Metadata.__init__(self, *args, **kwargs)
-

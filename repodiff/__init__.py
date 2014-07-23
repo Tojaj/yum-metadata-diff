@@ -1,9 +1,3 @@
-from repodiff.primary import PrimaryMetadata, PrimaryPackage
-from repodiff.filelists import FilelistsMetadata, FilelistsPackage, FilelistsDbPackage
-from repodiff.other import OtherMetadata, OtherPackage
-from repodiff.repomd import RepomdMetadata, RepomdData
-from repodiff.repo import OneRepo, CompleteRepo
-from lxml import etree
 import os
 import sys
 import bz2
@@ -17,17 +11,29 @@ try:
 except ImportError:
     import sqlite
 
-class XmlRepo(object):
-    pass
+from lxml import etree
 
-class Repo(object):
-    pass
+from repodiff.repo import OneRepo, CompleteRepo
+from repodiff.other import OtherMetadata, OtherPackage
+from repodiff.primary import PrimaryMetadata, PrimaryPackage
+from repodiff.repomd import RepomdMetadata, RepomdItem
+from repodiff.filelists import FilelistsMetadata, FilelistsPackage, FilelistsDbPackage
+
 
 # namespace
 PRI_NS = "{http://linux.duke.edu/metadata/common}"
 FIL_NS = "{http://linux.duke.edu/metadata/filelists}"
 OTH_NS = "{http://linux.duke.edu/metadata/other}"
 MD_NS = "{http://linux.duke.edu/metadata/repo}"
+
+
+class XmlRepo(object):
+    pass
+
+
+class Repo(object):
+    pass
+
 
 class MyElement(object):
     def __init__(self, element):
@@ -51,6 +57,7 @@ class MyElement(object):
 
     def __iter__(self):
         return self.element.__iter__()
+
 
 #
 # XML
@@ -85,12 +92,12 @@ def primarymetadata_from_xml_factory(xmlpath, archpath):
             elif elem.tag.endswith("arch"):
                 pp.arch = elem.text
             elif elem.tag.endswith("version"):
-                pp.epoch   = elem.get("epoch")
+                pp.epoch = elem.get("epoch")
                 pp.version = elem.get("ver")
                 pp.release = elem.get("rel")
             elif elem.tag.endswith("checksum"):
                 pp.checksum_type = elem.get("type")
-                pp.checksum      = elem.text
+                pp.checksum = elem.text
             elif elem.tag.endswith("summary"):
                 pp.summary = elem.text
             elif elem.tag.endswith("description"):
@@ -100,12 +107,12 @@ def primarymetadata_from_xml_factory(xmlpath, archpath):
             elif elem.tag.endswith("url"):
                 pp.url = elem.text
             elif elem.tag.endswith("time"):
-                pp.time_file  = int(elem.get("file"))
+                pp.time_file = int(elem.get("file"))
                 pp.time_build = int(elem.get("build"))
             elif elem.tag.endswith("size"):
-                pp.size_package   = int(elem.get("package"))
+                pp.size_package = int(elem.get("package"))
                 pp.size_installed = int(elem.get("installed"))
-                pp.size_archive   = int(elem.get("archive"))
+                pp.size_archive = int(elem.get("archive"))
             elif elem.tag.endswith("location"):
                 pp.location = elem.get("href")
                 pp.location_base = elem.get("{http://www.w3.org/XML/1998/namespace}base")
@@ -140,7 +147,7 @@ def primarymetadata_from_xml_factory(xmlpath, archpath):
                         else:
                             pp.files.add(felem.text)
         elements.clear()
-        pri_obj.append(pp)
+        pri_obj.append(pp.checksum, pp)
     return pri_obj
 
 
@@ -150,12 +157,12 @@ def filelistsmetadata_from_xml_factory(xmlpath, archpath):
         elements = MyElement(elements)
         fp = FilelistsPackage()
         fp.checksum = elements.get("pkgid")
-        fp.arch     = elements.get("arch")
-        fp.name     = elements.get("name")
+        fp.arch = elements.get("arch")
+        fp.name = elements.get("name")
         for elem in elements:
             elem = MyElement(elem)
             if elem.tag.endswith("version"):
-                fp.epoch   = elem.get("epoch")
+                fp.epoch = elem.get("epoch")
                 fp.version = elem.get("ver")
                 fp.release = elem.get("rel")
             elif elem.tag.endswith("file"):
@@ -166,7 +173,7 @@ def filelistsmetadata_from_xml_factory(xmlpath, archpath):
                 else:
                     fp.files.add(elem.text)
         elements.clear()
-        fil_obj.append(fp)
+        fil_obj.append(fp.checksum, fp)
     return fil_obj
 
 
@@ -176,23 +183,25 @@ def othermetadata_from_xml_factory(xmlpath, archpath):
         elements = MyElement(elements)
         op = OtherPackage()
         op.checksum = elements.get("pkgid")
-        op.arch     = elements.get("arch")
-        op.name     = elements.get("name")
+        op.arch = elements.get("arch")
+        op.name = elements.get("name")
         for elem in elements:
             elem = MyElement(elem)
             if elem.tag.endswith("version"):
-                op.epoch   = elem.get("epoch")
+                op.epoch = elem.get("epoch")
                 op.version = elem.get("ver")
                 op.release = elem.get("rel")
             elif elem.tag.endswith("changelog"):
                 op.changelogs.append((elem.get("author"), int(elem.get("date")), elem.text))
         elements.clear()
-        oth_obj.append(op)
+        oth_obj.append(op.checksum, op)
     return oth_obj
+
 
 #
 # Sqlite
 #
+
 
 def primarymetadata_from_sqlite_factory(sqlitepath, archpath):
     pri_obj = PrimaryMetadata(sqlitepath, archpath)
@@ -239,8 +248,8 @@ def primarymetadata_from_sqlite_factory(sqlitepath, archpath):
         setattr(pp, 'requires', req_set)
 
         #files
-        files  = set([])
-        dirs   = set([])
+        files = set([])
+        dirs = set([])
         ghosts = set([])
         cur.execute('SELECT name, type FROM files WHERE pkgKey=?', (uid,))
         for filename, ftype in cur:
@@ -250,11 +259,11 @@ def primarymetadata_from_sqlite_factory(sqlitepath, archpath):
                 dirs.add(filename)
             elif ftype == 'ghost':
                 ghosts.add(filename)
-        pp.files   = files
-        pp.dirs    = dirs
-        pp.ghosts  = ghosts
+        pp.files = files
+        pp.dirs = dirs
+        pp.ghosts = ghosts
 
-        pri_obj.append(pp)
+        pri_obj.append(pp.checksum, pp)
     return pri_obj
 
 
@@ -297,8 +306,6 @@ def filelistsmetadata_from_sqlite_factory(sqlitepath, archpath):
                 else:
                     path = filename
 
-#                open("fout").write("%s [%s | %s]\n" % (path, dirname, filename))
-
                 if ftype == 'f':
                     fp.files.add(path)
                     fp.files_db.add(filename)
@@ -310,7 +317,7 @@ def filelistsmetadata_from_sqlite_factory(sqlitepath, archpath):
                     fp.ghosts_db.add(filename)
                 fp.dbdirectories.append(dirname)
         fp.dbdirectories = sorted(fp.dbdirectories)
-        fil_obj.append(fp)
+        fil_obj.append(fp.checksum, fp)
     return fil_obj
 
 
@@ -333,13 +340,14 @@ def othermetadata_from_sqlite_factory(sqlitepath, archpath):
         for author, date, changelog in cur:
             op.changelogs.append((author, date, changelog))
 
-        oth_obj.append(op)
+        oth_obj.append(op.checksum, op)
     return oth_obj
 
 
 #
 # Repomd
 #
+
 
 def repomdmetadata_from_xml_factory(xmlpath):
     rm_obj = RepomdMetadata(xmlpath)
@@ -367,11 +375,8 @@ def repomdmetadata_from_xml_factory(xmlpath):
     # Iter over data elements  (<data type="primary">, ...)
     for _, elements in etree.iterparse(xmlpath, tag="%sdata" % MD_NS):
         elements = MyElement(elements)
-        re = RepomdData()
+        re = RepomdItem()
         re.name = elements.get("type")
-        # Checksum of metadata could be different so use
-        # type instead of real checksum
-        re.checksum = elements.get("type")
         for elem in elements:
             elem = MyElement(elem)
             if elem.tag.endswith("location"):
@@ -383,7 +388,7 @@ def repomdmetadata_from_xml_factory(xmlpath):
                 re.open_checksum = elem.text
             elif elem.tag.endswith("checksum"):
                 re.checksum_type = elem.get("type")
-                re.real_checksum = elem.text
+                re.checksum = elem.text
             elif elem.tag.endswith("timestamp"):
                 re.timestamp = elem.text
             elif elem.tag.endswith("size"):
@@ -392,7 +397,7 @@ def repomdmetadata_from_xml_factory(xmlpath):
             elif elem.tag.endswith("database_version"):
                 re.database_version = elem.text
         elements.clear()
-        rm_obj.append(re)
+        rm_obj.append(re.name, re)
     return rm_obj
 
 
@@ -400,15 +405,16 @@ def repomdmetadata_from_xml_factory(xmlpath):
 # One repo
 #
 
+
 def xml_onerepo_factory(pri_path=None, fil_path=None,
                         oth_path=None, remove_tmp=True):
     # Check if all three repofiles (primary, filelists, other) exists
     if not pri_path:
-        raise IOError("XML primary is missing in %s" % repopath)
+        raise IOError("XML primary is missing %s" % pri_path)
     if not fil_path:
-        raise IOError("XML filelists is missing in %s" % repopath)
+        raise IOError("XML filelists is missing %s" % fil_path)
     if not oth_path:
-        raise IOError("XML other is missing in %s" % repopath)
+        raise IOError("XML other is missing %s" % oth_path)
 
     # Create tempdir
     tmpdir = tempfile.mkdtemp()
@@ -443,6 +449,7 @@ def xml_onerepo_factory(pri_path=None, fil_path=None,
         tmpdir = None
     return OneRepo(pri, fil, oth, tmpdir)
 
+
 def xml_onerepo_from_path_factory(repopath, remove_tmp=True):
     pri_path = fil_path = oth_path = None
     for fname in os.listdir(repopath):
@@ -453,6 +460,7 @@ def xml_onerepo_from_path_factory(repopath, remove_tmp=True):
         elif "other.xml." in fname:
             oth_path = os.path.join(repopath, fname)
     return xml_onerepo_factory(pri_path, fil_path, oth_path, remove_tmp)
+
 
 def sqlite_onerepo_factory(pri_path=None, fil_path=None,
                            oth_path=None, remove_tmp=True):
@@ -493,6 +501,7 @@ def sqlite_onerepo_factory(pri_path=None, fil_path=None,
         tmpdir = None
     return OneRepo(pri, fil, oth, tmpdir)
 
+
 def sqlite_onerepo_from_path_factory(repopath, remove_tmp=True):
     pri_path = fil_path = oth_path = None
     for fname in os.listdir(repopath):
@@ -504,16 +513,18 @@ def sqlite_onerepo_from_path_factory(repopath, remove_tmp=True):
             oth_path = os.path.join(repopath, fname)
     return sqlite_onerepo_factory(pri_path, fil_path, oth_path, remove_tmp)
 
+
 #
 # Complete repo
 #
+
 
 def completerepo_factory(repopath, sqliteauto=True, sqlite=False):
     # Load repomd.xml
     md = None
     md_path = os.path.join(repopath, "repodata/repomd.xml")
     if os.path.exists(md_path):
-        md  = repomdmetadata_from_xml_factory(md_path)
+        md = repomdmetadata_from_xml_factory(md_path)
     else:
         print "Warning: repomd.xml is missing (%s)" % md_path
 

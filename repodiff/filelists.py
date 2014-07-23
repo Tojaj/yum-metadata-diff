@@ -8,11 +8,11 @@ class FilelistsPackage(Package):
 
     def __init__(self):
         Package.__init__(self)
-        self.arch = ""       #-\
-        #self.name = ""      #--\
-        self.version = ""    #---- This information is available only in XML
-        self.epoch = ""      #--/
-        self.release = ""    #-/
+        #self.arch = ""       #-\
+        #self.name = ""       #--\
+        #self.version = ""    #---- This information is available only in XML
+        #self.epoch = ""      #--/
+        #self.release = ""    #-/
         self.files = set()
         self.dirs = set()
         self.ghosts = set()
@@ -25,7 +25,7 @@ class FilelistsDbPackage(FilelistsPackage):
 
     def __init__(self):
         FilelistsPackage.__init__(self)
-        self.dbdirectories = list() # Directories from filelists filelist db table
+        self.dbdirectories = list() # Directories from filelist db table
         self.files_db = set() # Raw splited files from db
         self.dirs_db = set() # Raw splited dirs from db
         self.ghosts_db = set() # Ras splited ghosts from db

@@ -1,9 +1,12 @@
-import shutil
 import os
-from diff_objects import OneRepoDiff, CompleteRepoDiff
-from repomd import RepomdData
-from pprint import pformat
+import shutil
+import pprint
+
 from kobo.shortcuts import compute_file_checksums
+
+from repodiff.repomd import RepomdItem
+from repodiff.diff_objects import OneRepoDiff, CompleteRepoDiff
+
 
 class OneRepo(object):
     """Class represent metadata set (primary + filelistst + other)
@@ -23,28 +26,28 @@ class OneRepo(object):
         """Translate checksum to name."""
         return self.pri.checksum_to_name(chksum)
 
-    def name_to_checksum(self, name):
-        """Translate name to checksum."""
-        return self.pri.name_to_checksum(name)
+    #def name_to_checksum(self, name):
+    #    """Translate name to checksum."""
+    #    return self.pri.name_to_checksum(name)
 
     def check_sanity(self, verbose=False):
         """Check if packages in primary, filelists
         and other metadata files correspond."""
         is_ok = True
-        pri_keys = self.pri.get_package_checksums()
-        fil_keys = self.fil.get_package_checksums()
-        oth_keys = self.oth.get_package_checksums()
+        pri_keys = set(self.pri.keys())
+        fil_keys = set(self.fil.keys())
+        oth_keys = set(self.oth.keys())
         if pri_keys != fil_keys:
             if verbose:
                 print "Packages in PRIMARY and FILELISTS are different:"
                 pri = pri_keys - fil_keys
                 if pri:
                     print "  Filelists missing packages:"
-                    print "    %s" % pformat(pri)
+                    print "    %s" % pprint.pformat(pri)
                 fil = fil_keys - pri_keys
                 if fil:
                     print "  Filelists redundant packages:"
-                    print "    %s" % pformat(fil)
+                    print "    %s" % pprint.pformat(fil)
             is_ok = False
         if pri_keys != oth_keys:
             if verbose:
@@ -52,25 +55,21 @@ class OneRepo(object):
                 pri = pri_keys - oth_keys
                 if pri:
                     print "  Other missing packages:"
-                    print "    %s" % pformat(pri)
+                    print "    %s" % pprint.pformat(pri)
                 oth = oth_keys - pri_keys
                 if oth:
                     print "  Other redundant packages:"
-                    print "    %s" % pformat(oth)
+                    print "    %s" % pprint.pformat(oth)
             is_ok = False
         return is_ok
 
-    def packages(self):
-        return self.pri.get_package_names()
-
-    def checksums(self):
-        return self.pri.get_package_checksums()
-
     def diff(self, other):
-        chksum_to_name_dicts = (self.pri.chksum_to_name,
-                                other.pri.chksum_to_name)
+        chksum_to_name_dict = {}
+        for pri_md in (self.pri, other.pri):
+            for key in pri_md.keys():
+                chksum_to_name_dict[key] = pri_md.checksum_to_name(key)
 
-        onerepo_diff = OneRepoDiff(chksum_to_name_dicts=chksum_to_name_dicts)
+        onerepo_diff = OneRepoDiff(chksum_to_name_dict=chksum_to_name_dict)
         diff = self.pri.diff(other.pri)
         if diff:
             onerepo_diff.pri_diff = diff
@@ -167,7 +166,7 @@ class CompleteRepo(object):
         # Calculate checksums
         arch_chksum = compute_file_checksums(archpath, obj.checksum_type)[obj.checksum_type]
         chksum = compute_file_checksums(path, obj.open_checksum_type)[obj.open_checksum_type]
-        if arch_chksum != obj.real_checksum:
+        if arch_chksum != obj.checksum:
             self.vprint("repomd.xml: Archive checksum doesn't match: %s" % archpath, verbose)
             is_ok = False
         if chksum != obj.open_checksum:
@@ -196,7 +195,7 @@ class CompleteRepo(object):
 
         # Check if files exists
         for item in self.md:
-            if not isinstance(item, RepomdData) or not item.location_href:
+            if not isinstance(item, RepomdItem) or not item.location_href:
                 continue
             basename = os.path.basename(item.location_href)
             path = os.path.join(self.repopath, basename)
@@ -221,7 +220,7 @@ class CompleteRepo(object):
             elif data.name == "primary":
                 obj = self.xml_rep.pri
             else:
-                # TODO: updateinfo, comps, etc.
+                # Skip unsupported updateinfo, comps, etc.
                 continue
             is_ok &= self._check_one_archive(data, obj.path, obj.archpath, verbose)
         return is_ok
@@ -232,7 +231,7 @@ class CompleteRepo(object):
         if diff:
             completerepo_diff.xml_repo_diff = diff
         if self.sql_rep and other.sql_rep:
-            diff  = self.sql_rep.diff(other.sql_rep)
+            diff = self.sql_rep.diff(other.sql_rep)
             if diff:
                 completerepo_diff.sql_repo_diff = diff
         else:

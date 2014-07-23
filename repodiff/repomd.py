@@ -1,21 +1,20 @@
 import pprint
-from repodiff.diff_objects import RepomdDataDiff, MetadataDiff
-from repodiff.package import Package
-from repodiff.metadata import Metadata
+
+from repodiff.diff_objects import RepomdItemDiff, MetadataDiff
+from repodiff.metadata import Metadata, MetadataItem
 
 
-class RepomdData(Package):
+class RepomdItem(MetadataItem):
 
-    DIFF_CLASS = RepomdDataDiff
+    DIFF_CLASS = RepomdItemDiff
     DIFF_ATTR = ('checksum_type',
                  'open_checksum_type')
 
     def __init__(self):
-        Package.__init__(self)
-        #self.name = ""
-        #self.checksum = ""
+        MetadataItem.__init__(self)
+        self.name = ""
+        self.checksum = ""
         self.location_href = ""
-        self.real_checksum = ""
         self.checksum_type = ""
         self.timestamp = ""
         self.size = ""
@@ -23,6 +22,9 @@ class RepomdData(Package):
         self.open_checksum = ""
         self.open_checksum_type = ""
         self.database_version = ""
+
+    def __repr__(self):
+        return "%s" % (self.name,)
 
 
 class RepomdDiff(MetadataDiff):
@@ -81,4 +83,3 @@ class RepomdMetadata(Metadata):
         if rdiff:
             return rdiff
         return None
-

@@ -1,7 +1,9 @@
-import difflib
 import pprint
+import difflib
+
 
 _MAX_LENGTH = 80
+
 
 def pretty_diff(d1, d2):
 
@@ -14,7 +16,7 @@ def pretty_diff(d1, d2):
             return result
         return result[:_MAX_LENGTH] + ' [truncated]...'
 
-    def sequence_diff(seq1, seq2, msg=None, seq_type=None):
+    def sequence_diff(seq1, seq2, seq_type=None):
         if seq_type is not None:
             seq_type_name = seq_type.__name__
             if not isinstance(seq1, seq_type):
@@ -102,7 +104,8 @@ def pretty_diff(d1, d2):
                           pprint.pformat(seq2).splitlines()))
         return standardMsg + '\n' + diffMsg
 
-    def set_diff(set1, set2, msg=None):
+
+    def set_diff(set1, set2):
         try:
             difference1 = set1.difference(set2)
         except TypeError, e:
@@ -154,8 +157,9 @@ def pretty_diff(d1, d2):
     return diff
 
 
-class PackageDiff(object):
-    ITEM_NAME = "Package"
+class ItemDiff(object):
+
+    ITEM_NAME = "Item"
 
     def __init__(self):
         self.differences = []
@@ -201,66 +205,67 @@ class PackageDiff(object):
         return msg
 
 
-class RepomdDataDiff(PackageDiff):
+class PackageDiff(ItemDiff):
+    ITEM_NAME = "Package"
+
+
+class RepomdItemDiff(ItemDiff):
     ITEM_NAME = "Value"
 
 
 class MetadataDiff(object):
     def __init__(self):
-        self.missing_packages = set()  # set of checksums
-        self.added_packages   = set()  # set of checksums
-        self.changed_packages = set()  # set of checksums
-        self.packages_diffs = {}
-        # self.packges_diffs keys are values from self.changed_packages
+        self.missing_items = set()  # set of checksums
+        self.added_items = set()  # set of checksums
+        self.changed_items = set()  # set of checksums
+        self.items_diffs = {}
+        # self.packges_diffs keys are values from self.changed_items
         # and values are PackageDiff objects.
 
     def __nonzero__(self):
-        return bool(len(self.missing_packages) or \
-                    len(self.added_packages) or \
-                    len(self.changed_packages))
+        return bool(len(self.missing_items) or \
+                    len(self.added_items) or \
+                    len(self.changed_items))
 
     def __repr__(self):
         return pprint.pformat(self.__dict__)
 
-    def pprint(self, chksum_to_name_dicts=None):
+    def pprint(self, chksum_to_name_dict=None):
         def translate(chksum):
-            if not chksum_to_name_dicts:
-                return None
-            for chk_dict in chksum_to_name_dicts:
-                if chksum in chk_dict:
-                    return chk_dict[chksum]
+            if chksum_to_name_dict and chksum in chksum_to_name_dict:
+                return chksum_to_name_dict[chksum]
             return None
 
         msg = ""
-        if self.missing_packages:
+        if self.missing_items:
             msg += "  Missing items:\n"
-            for pkg in self.missing_packages:
+            for pkg in self.missing_items:
                 if translate(pkg):
                     msg += "    %s (%s)\n" % (translate(pkg), pkg)
                 else:
                     msg += "    %s\n" % pkg
-        if self.added_packages:
+        if self.added_items:
             msg += "  Added items:\n"
-            for pkg in self.added_packages:
+            for pkg in self.added_items:
                 if translate(pkg):
                     msg += "    %s (%s)\n" % (translate(pkg), pkg)
                 else:
                     msg += "    %s\n" % pkg
-        if self.changed_packages:
+        if self.changed_items:
             msg += "  Changed items:\n"
-            for pkg in self.changed_packages:
+            for pkg in self.changed_items:
                 if translate(pkg):
                     msg += "    %s (%s)\n" % (translate(pkg), pkg)
                 else:
                     msg += "    %s\n" % pkg
-                msg += self.packages_diffs[pkg].pprint()
+                msg += self.items_diffs[pkg].pprint()
                 msg += "    ----------------------------------------\n"
         return msg
 
 
 class OneRepoDiff(object):
-    def __init__(self, chksum_to_name_dicts=None):
-        self.chksum_to_name_dicts = chksum_to_name_dicts
+    def __init__(self, chksum_to_name_dict=None):
+        self.chksum_to_name_dict = chksum_to_name_dict
         self.pri_diff = None
         self.fil_diff = None
         self.oth_diff = None
@@ -275,13 +280,13 @@ class OneRepoDiff(object):
         msg = ""
         if self.pri_diff:
             msg += "PRIMARY repodata are different:\n"
-            msg += self.pri_diff.pprint(chksum_to_name_dicts=self.chksum_to_name_dicts)
+            msg += self.pri_diff.pprint(chksum_to_name_dict=self.chksum_to_name_dict)
         if self.fil_diff:
             msg += "FILELISTS repodata are different:\n"
-            msg += self.fil_diff.pprint(chksum_to_name_dicts=self.chksum_to_name_dicts)
+            msg += self.fil_diff.pprint(chksum_to_name_dict=self.chksum_to_name_dict)
         if self.oth_diff:
             msg += "OTHER repodata are different:\n"
-            msg += self.oth_diff.pprint(chksum_to_name_dicts=self.chksum_to_name_dicts)
+            msg += self.oth_diff.pprint(chksum_to_name_dict=self.chksum_to_name_dict)
         return msg
 
 
@@ -289,7 +294,7 @@ class CompleteRepoDiff(object):
     def __init__(self):
         self.xml_repo_diff = None
         self.sql_repo_diff = None
-        self.md_diff       = None
+        self.md_diff = None
 
     def __nonzero__(self):
         return bool(self.xml_repo_diff or self.sql_repo_diff or self.md_diff)

@@ -9,10 +9,12 @@ class PrimaryPackage(Package):
     def __init__(self):
         Package.__init__(self)
         self.pkgkey = ""
-        self.arch = ""
-        self.version = ""
-        self.epoch = ""
-        self.release = ""
+        #self.checksum = ""
+        #self.name = ""
+        #self.epoch = ""
+        #self.version = ""
+        #self.release = ""
+        #self.arch = ""
         self.summary = ""
         self.description = ""
         self.url = ""
@@ -32,24 +34,19 @@ class PrimaryPackage(Package):
         self.location = ""
         self.location_base = ""
         self.checksum_type = ""
-        self.provides  = set([])  # set([('filename', flags, epoch, version, release), ...])
+        self.provides = set([])  # set([('fn', flags, epoch, ver, rel), ...])
         self.conflicts = set([])  # -||-
         self.obsoletes = set([])  # -||-
-        self.requires  = set([]) # set([(filename, flags, epoch, version, release, pre), ...])
-        # ^^^ It's because there can be multiple files with same name, but different attributes
-        self.files  = set()  # primary_files
-        self.dirs   = set()  # primary_dirs
+        self.requires = set([]) # set([(fn, flags, epoch, ver, rel, pre), ...])
+        # ^^^ It's because there can be multiple files with the
+        #     same name, but different attributes
+        self.files = set()  # primary_files
+        self.dirs = set()  # primary_dirs
         self.ghosts = set()  # primary_ghosts
+
+        # Let's diff all of out attributes
         if not self.DIFF_ATTR:
             self.DIFF_ATTR = self.__dict__.keys()
-
-    def pprint(self):
-        Package.pprint(self)
-        msg  = "Time - File: %s | Build: %s\n" % \
-                    (self.time_file, self.time_build)
-        msg += "Size - Package: %s | Installed: %s | Archive: %s\n" % \
-                    (self.size_package, self.size_installed, self.size_archive)
-        print msg
 
 
 class PrimaryMetadata(Metadata):
@@ -58,14 +55,6 @@ class PrimaryMetadata(Metadata):
         Metadata.__init__(self, *args, **kwargs)
 
     def checksum_to_name(self, checksum):
-        if checksum in self.chksum_to_name:
-            return self.chksum_to_name[checksum]
+        if checksum in self:
+            return self.items[checksum].nevra()
         return None
-
-    def name_to_checksum(self, name):
-        if name in self.name_to_chksum:
-            return self.name_to_chksum[name]
-        return None
-
-    def get_package_names(self):
-        return set(self.name_to_chksum.keys())
