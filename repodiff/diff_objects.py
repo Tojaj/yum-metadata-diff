@@ -1,6 +1,5 @@
 import difflib
 import pprint
-import pprint as libpprint
 
 _MAX_LENGTH = 80
 
@@ -165,7 +164,7 @@ class PackageDiff(object):
         return bool(len(self.differences))
 
     def __repr__(self):
-        return libpprint.pformat(self.__dict__)
+        return pprint.pformat(self.__dict__)
 
     def add_difference(self, name, val_a, val_b, item_type=None, desc=None):
         self.differences.append((name, val_a, val_b, item_type, desc))
@@ -192,9 +191,9 @@ class PackageDiff(object):
             else:
                 msg += "\n"
             msg += "      1. %s:\n" % self.ITEM_NAME
-            msg += "        %s\n" % libpprint.pformat(a, indent=8)
+            msg += "        %s\n" % pprint.pformat(a, indent=8)
             msg += "      2. %s:\n" % self.ITEM_NAME
-            msg += "        %s\n" % libpprint.pformat(b, indent=8)
+            msg += "        %s\n" % pprint.pformat(b, indent=8)
             if nice_diff:
                 msg += "      Diff:\n"
                 msg += "        %s\n" % "\n        ".join(nice_diff.split('\n'))
@@ -221,7 +220,7 @@ class MetadataDiff(object):
                     len(self.changed_packages))
 
     def __repr__(self):
-        return libpprint.pformat(self.__dict__)
+        return pprint.pformat(self.__dict__)
 
     def pprint(self, chksum_to_name_dicts=None):
         def translate(chksum):
@@ -270,7 +269,7 @@ class OneRepoDiff(object):
         return bool(self.pri_diff or self.fil_diff or self.oth_diff)
 
     def __repr__(self):
-        return libpprint.pformat(self.__dict__)
+        return pprint.pformat(self.__dict__)
 
     def pprint(self):
         msg = ""
@@ -296,7 +295,7 @@ class CompleteRepoDiff(object):
         return bool(self.xml_repo_diff or self.sql_repo_diff or self.md_diff)
 
     def __repr__(self):
-        return libpprint.pformat(self.__dict__)
+        return pprint.pformat(self.__dict__)
 
     def pprint(self):
         msg = ""
