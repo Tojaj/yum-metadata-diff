@@ -4,8 +4,8 @@ import pprint
 
 from kobo.shortcuts import compute_file_checksums
 
-from repodiff.repomd import RepomdItem
-from repodiff.diff_objects import OneRepoDiff, CompleteRepoDiff
+from yum_metadata_diff.repomd import RepomdItem
+from yum_metadata_diff.diff_objects import OneRepoDiff, CompleteRepoDiff
 
 
 class OneRepo(object):

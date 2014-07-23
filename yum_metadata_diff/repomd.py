@@ -1,7 +1,7 @@
 import pprint
 
-from repodiff.diff_objects import RepomdItemDiff, MetadataDiff
-from repodiff.metadata import Metadata, MetadataItem
+from yum_metadata_diff.diff_objects import RepomdItemDiff, MetadataDiff
+from yum_metadata_diff.metadata import Metadata, MetadataItem
 
 
 class RepomdItem(MetadataItem):

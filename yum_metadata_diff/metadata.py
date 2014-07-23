@@ -1,4 +1,4 @@
-from repodiff.diff_objects import MetadataDiff
+from yum_metadata_diff.diff_objects import MetadataDiff
 
 
 class MetadataItem(object):

@@ -4,7 +4,7 @@
 import sys
 
 from optparse import OptionParser
-from repodiff import completerepo_factory
+from yum_metadata_diff import completerepo_factory
 
 
 if __name__ == "__main__":

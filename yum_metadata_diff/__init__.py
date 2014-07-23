@@ -13,11 +13,12 @@ except ImportError:
 
 from lxml import etree
 
-from repodiff.repo import OneRepo, CompleteRepo
-from repodiff.other import OtherMetadata, OtherPackage
-from repodiff.primary import PrimaryMetadata, PrimaryPackage
-from repodiff.repomd import RepomdMetadata, RepomdItem
-from repodiff.filelists import FilelistsMetadata, FilelistsPackage, FilelistsDbPackage
+from yum_metadata_diff.repo import OneRepo, CompleteRepo
+from yum_metadata_diff.other import OtherMetadata, OtherPackage
+from yum_metadata_diff.primary import PrimaryMetadata, PrimaryPackage
+from yum_metadata_diff.repomd import RepomdMetadata, RepomdItem
+from yum_metadata_diff.filelists import FilelistsMetadata, FilelistsPackage
+from yum_metadata_diff.filelists import FilelistsDbPackage
 
 
 # namespace

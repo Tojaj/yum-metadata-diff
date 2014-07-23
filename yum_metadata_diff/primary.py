@@ -1,5 +1,5 @@
-from repodiff.package import Package
-from repodiff.metadata import Metadata
+from yum_metadata_diff.package import Package
+from yum_metadata_diff.metadata import Metadata
 
 
 class PrimaryPackage(Package):

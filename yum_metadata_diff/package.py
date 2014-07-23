@@ -1,7 +1,7 @@
 import pprint
 
-from repodiff.metadata import MetadataItem
-from repodiff.diff_objects import PackageDiff
+from yum_metadata_diff.metadata import MetadataItem
+from yum_metadata_diff.diff_objects import PackageDiff
 
 
 class Package(MetadataItem):
