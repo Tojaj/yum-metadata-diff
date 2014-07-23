@@ -226,25 +226,34 @@ class MetadataDiff(object):
     def pprint(self, chksum_to_name_dicts=None):
         def translate(chksum):
             if not chksum_to_name_dicts:
-                return chksum
+                return None
             for chk_dict in chksum_to_name_dicts:
                 if chksum in chk_dict:
                     return chk_dict[chksum]
-            return chksum
+            return None
 
         msg = ""
         if self.missing_packages:
             msg += "  Missing packages:\n"
             for pkg in self.missing_packages:
-                msg += "    %s\n" % translate(pkg)
+                if translate(pkg):
+                    msg += "    %s (%s)\n" % (translate(pkg), pkg)
+                else:
+                    msg += "    %s\n" % pkg
         if self.added_packages:
             msg += "  Added packages:\n"
             for pkg in self.added_packages:
-                msg += "    %s\n" % translate(pkg)
+                if translate(pkg):
+                    msg += "    %s (%s)\n" % (translate(pkg), pkg)
+                else:
+                    msg += "    %s\n" % pkg
         if self.changed_packages:
             msg += "  Changed packages:\n"
             for pkg in self.changed_packages:
-                msg += "    %s\n" % translate(pkg)
+                if translate(pkg):
+                    msg += "    %s (%s)\n" % (translate(pkg), pkg)
+                else:
+                    msg += "    %s\n" % pkg
                 msg += self.packages_diffs[pkg].pprint()
                 msg += "    ----------------------------------------\n"
         return msg

@@ -13,6 +13,11 @@ class Metadata(object):
         return self.packages.itervalues()
 
     def append(self, ppackage):
+        if ppackage.checksum in self.packages:
+            print "WARNING: Multiple items with the same checksum %s " \
+                  "(Names are %s and %s)" % (ppackage.checksum, ppackage.name,
+                  self.packages[ppackage.checksum].name)
+            return
         self.packages[ppackage.checksum] = ppackage
         if ppackage.name:
             self.name_to_chksum[ppackage.name] = ppackage.checksum
