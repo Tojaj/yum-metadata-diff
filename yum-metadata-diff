@@ -8,7 +8,10 @@ from yum_metadata_diff import completerepo_factory
 
 
 if __name__ == "__main__":
-    parser = OptionParser('usage: %prog [options].. <repodata_directory>..')
+    usage = "Usage:\n" + \
+            "  %prog [--verbose] <repodata>\n" +\
+            "  %prog --compare [--verbose] <first_repodata> <second_repodata>"
+    parser = OptionParser(usage)
     parser.add_option('-c', '--check', help="Check repodata sanity. (Default)",
                         action='store_true', default=True)
     parser.add_option('-d', '--compare', help="Compare two repodata.",
@@ -40,13 +43,13 @@ if __name__ == "__main__":
         if diff:
             print diff.pprint()
             print "Repos are not same"
-            sys.exit(2)
+            sys.exit(1)
     else:
         # Sanity check of metadata
         cr1 = completerepo_factory(repodir)
         ret = cr1.check_sanity(verbose=verbose)
         if not ret:
             print "Repodata is not sane"
-            sys.exit(2)
+            sys.exit(1)
 
     sys.exit(0)
