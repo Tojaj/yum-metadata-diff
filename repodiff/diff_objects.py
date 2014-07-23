@@ -233,21 +233,21 @@ class MetadataDiff(object):
 
         msg = ""
         if self.missing_packages:
-            msg += "  Missing packages:\n"
+            msg += "  Missing items:\n"
             for pkg in self.missing_packages:
                 if translate(pkg):
                     msg += "    %s (%s)\n" % (translate(pkg), pkg)
                 else:
                     msg += "    %s\n" % pkg
         if self.added_packages:
-            msg += "  Added packages:\n"
+            msg += "  Added items:\n"
             for pkg in self.added_packages:
                 if translate(pkg):
                     msg += "    %s (%s)\n" % (translate(pkg), pkg)
                 else:
                     msg += "    %s\n" % pkg
         if self.changed_packages:
-            msg += "  Changed packages:\n"
+            msg += "  Changed items:\n"
             for pkg in self.changed_packages:
                 if translate(pkg):
                     msg += "    %s (%s)\n" % (translate(pkg), pkg)
