@@ -238,14 +238,14 @@ class MetadataDiff(object):
 
         msg = ""
         if self.missing_items:
-            msg += "  Missing items:\n"
+            msg += "  Missing items (items from A that are not available in B):\n"
             for pkg in self.missing_items:
                 if translate(pkg):
                     msg += "    %s (%s)\n" % (translate(pkg), pkg)
                 else:
                     msg += "    %s\n" % pkg
         if self.added_items:
-            msg += "  Added items:\n"
+            msg += "  Added items (items from B that are not available in A):\n"
             for pkg in self.added_items:
                 if translate(pkg):
                     msg += "    %s (%s)\n" % (translate(pkg), pkg)
